@@ -77,8 +77,9 @@ SHALL compute the clean air delivery rate needed for the target air changes per
 hour and the number of air purifiers of a given rated CADR, rounding up.
 
 3.2. THE SYSTEM SHALL rank districts for posko and rumah oksigen priority by
-expected extra visits over the outlook window, and SHALL show the inputs behind
-each rank.
+the expected relative change in respiratory visits over the outlook window,
+which does not depend on how many puskesmas are mapped, and SHALL show the
+inputs behind each rank.
 
 3.3. IF a district's outlook is incomplete because a source failed, THEN THE
 SYSTEM SHALL mark its rank as incomplete instead of ranking it low.

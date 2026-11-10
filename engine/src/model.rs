@@ -129,6 +129,10 @@ pub struct DistrictOutlook {
     pub complete: bool,
     pub haze_days: u32,
     pub fire_haze_days: u32,
+    /// Mean of (relative risk - 1) over known window days: the expected
+    /// relative change in respiratory visits. Independent of baselines and of
+    /// how many puskesmas are mapped. None when no window day is known.
+    pub window_mean_change: Option<Range>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -166,6 +170,9 @@ pub struct PriorityEntry {
     pub district_name: String,
     /// None for incomplete districts: they are listed, never ranked low.
     pub rank: Option<u32>,
+    /// Ranking key: expected relative change in visits over the window.
+    pub mean_change: Option<Range>,
+    /// Extra visits summed over the puskesmas in the input (mapped ones only).
     pub window_extra: Range,
     pub haze_days: u32,
     pub fire_haze_days: u32,

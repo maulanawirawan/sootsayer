@@ -67,6 +67,7 @@ proptest! {
             if let Some(x) = &d.extra { prop_assert!(ordered(x)); }
         }
         prop_assert!(ordered(&p.window_extra));
+        if let Some(m) = &out.districts[0].window_mean_change { prop_assert!(ordered(m)); }
     }
 
     #[test]

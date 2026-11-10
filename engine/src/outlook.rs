@@ -81,6 +81,7 @@ fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> Distri
     let mut run = 0u32;
     let mut out_days = Vec::with_capacity(days.len());
     let (mut complete, mut haze_days, mut fire_haze_days) = (true, 0u32, 0u32);
+    let (mut change_sum, mut known_window_days) = (Range::ZERO, 0u32);
     for (i, date) in days.iter().enumerate() {
         let (status, fire_data) = classify(d.pm10_ugm3[i], d.fire_count[i]);
         run = match status {
@@ -98,6 +99,10 @@ fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> Distri
         };
         let in_window = i >= window;
         if in_window {
+            if let Some(r) = rr {
+                change_sum = change_sum.add(r.minus(1.0));
+                known_window_days += 1;
+            }
             match status {
                 DayStatus::Unknown => complete = false,
                 DayStatus::Haze => haze_days += 1,
@@ -128,6 +133,7 @@ fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> Distri
         complete,
         haze_days,
         fire_haze_days,
+        window_mean_change: (known_window_days > 0).then(|| change_sum.scale(1.0 / f64::from(known_window_days))),
     }
 }
 
@@ -184,6 +190,7 @@ fn priority(districts: &[DistrictOutlook], puskesmas: &[PuskesmasOutlook]) -> Ve
                 district_code: d.code.clone(),
                 district_name: d.name.clone(),
                 rank: None,
+                mean_change: d.window_mean_change,
                 window_extra,
                 haze_days: d.haze_days,
                 fire_haze_days: d.fire_haze_days,
@@ -192,12 +199,15 @@ fn priority(districts: &[DistrictOutlook], puskesmas: &[PuskesmasOutlook]) -> Ve
             }
         })
         .collect();
-    // Complete districts first, ordered by expected extra visits, then fire-haze
-    // days, then haze days; the code breaks ties so the order is deterministic.
+    // Complete districts first, ordered by the expected relative change in
+    // visits (not by absolute extra visits: OpenStreetMap maps only some
+    // puskesmas, and a district with none mapped must not look calm), then
+    // fire-haze days, then haze days; the code breaks ties deterministically.
+    let key = |e: &PriorityEntry| e.mean_change.map_or(f64::NEG_INFINITY, |r| r.point);
     entries.sort_by(|a, b| {
         b.complete
             .cmp(&a.complete)
-            .then(b.window_extra.point.total_cmp(&a.window_extra.point))
+            .then(key(b).total_cmp(&key(a)))
             .then(b.fire_haze_days.cmp(&a.fire_haze_days))
             .then(b.haze_days.cmp(&a.haze_days))
             .then(a.district_code.cmp(&b.district_code))
@@ -336,6 +346,45 @@ mod tests {
         let d2 = out.priority.iter().find(|e| e.district_code == "D2").unwrap();
         assert_eq!(d1.rank, None);
         assert_eq!(d2.rank, Some(1));
+    }
+
+    #[test]
+    fn ranking_ignores_how_many_puskesmas_are_mapped() {
+        // D1: long fire-haze, nothing mapped. D2: mild city haze, ten big puskesmas.
+        let days = days(5);
+        let inp = OutlookInput {
+            window_start: days[0].clone(),
+            days,
+            districts: vec![
+                DistrictInput {
+                    code: "D1".into(),
+                    name: "A".into(),
+                    profile: Profile::Kabupaten,
+                    pm10_ugm3: vec![Some(400.0); 5],
+                    fire_count: vec![Some(9); 5],
+                },
+                DistrictInput {
+                    code: "D2".into(),
+                    name: "B".into(),
+                    profile: Profile::Kota,
+                    pm10_ugm3: vec![Some(150.0); 5],
+                    fire_count: vec![Some(0); 5],
+                },
+            ],
+            puskesmas: (0..10)
+                .map(|i| PuskesmasInput {
+                    id: format!("P{i}"),
+                    name: "x".into(),
+                    district_code: "D2".into(),
+                    baseline_visits_per_day: Some(20.0),
+                })
+                .collect(),
+        };
+        let out = outlook(&inp).unwrap();
+        assert_eq!(out.priority[0].district_code, "D1");
+        assert_eq!(out.priority[0].puskesmas_count, 0);
+        let m = out.priority[0].mean_change.unwrap();
+        assert!(m.point > 0.3 && m.low <= m.point && m.point <= m.high);
     }
 
     #[test]

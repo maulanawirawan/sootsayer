@@ -165,9 +165,16 @@ of clean air (CDC ventilation guidance); default unit CADR is an input, never
 assumed silently.
 
 ### Priority
-Sort complete districts by `window_extra.point` descending, then fire-haze
+`mean_change` = mean of `rr − 1` over known window days (point, low, high).
+Sort complete districts by `mean_change.point` descending, then fire-haze
 days, then haze days. Incomplete districts are listed separately with their
 partial numbers.
+
+Why not absolute extra visits: the reference build found 366 puskesmas in
+OpenStreetMap for Kalimantan, roughly 4 in 10 of the official count, and three
+districts with none mapped (including Kotawaringin Timur). Ranking by absolute
+visits would make those districts look calm. Absolute extra visits are still
+shown, labelled with the number of mapped puskesmas they cover.
 
 ## Error handling
 - A failed source gives a named banner (`FIRMS`, `CAMS`, `GIBS`) and the
