@@ -1,36 +1,51 @@
-# Product: crosscheck
+# Product: Sootsayer
 
 ## What it is
-crosscheck double-checks automated reports before a human reads them. It takes
-a findings list (JSON), checks every item against public data sources and a
-local rules file, labels each item, and writes a clean Markdown report.
+Sootsayer foretells where wildfire smoke (haze) will settle over the next five
+days and what that means for each puskesmas: how many extra respiratory visits
+to expect, with a range, and what to prepare. It shows everything on a real 3D
+globe: NASA satellite imagery of the selected day, terrain, satellite fire
+detections, and the modelled smoke field.
+
+Indonesian tagline: "Peramal jelaga untuk puskesmas."
 
 ## Who it is for
-- Individuals and teams drowning in noisy automated reports: data-quality
-  alerts, lint warnings, uptime checks, and the like.
-- AI agents that generate findings and need them checked before publishing —
-  they call crosscheck over MCP.
+- Dinas Kesehatan (district and provincial health offices) deciding where to
+  send staff, masks, and oxygen, and where to open posko and rumah oksigen.
+- Puskesmas heads preparing for a surge.
+- AI agents (for example inside Kiro) that query the outlook over MCP.
 
-## The house rule (never break this)
-If an item cannot be backed by evidence, it does not go in the trusted part of
-the report. Evidence first, always.
+## House rules (never break these)
+1. Real data only. The product never shows mock or made-up data. Every layer
+   and every number names its source and the time it refers to.
+2. Ranges, not single numbers. Every estimate shows its 95% interval next to
+   the point value, plus the study it comes from.
+3. Say the limits on screen. The method comes from one study of six puskesmas
+   in Central Kalimantan (Phung et al. 2025). The effect was clear in Pulang
+   Pisau and absent in Palangka Raya city. The app says so where the numbers
+   appear.
+4. Never present stale data as current. If a source fails or is old, the UI
+   shows which source and how old, and the outlook is marked incomplete.
+5. Decision support, not diagnosis. The app estimates load on clinics; it does
+   not give medical advice to individuals.
 
-## Labels (exactly one per item)
-- **verified** — backed by at least one source, with evidence captured.
-- **needs-evidence** — cannot confirm or rule it out; a human should look.
-- **likely false positive** — a rule, or a missing reference, says it is
-  probably noise.
+## Wording
+- Bahasa Indonesia first, English second. Plain words a puskesmas head would use.
+- Calm and specific. No alarmist language, no fear marketing.
+- The Kiroween night-and-smoke look belongs to the visuals, never to the health
+  wording.
 
-## Receipts
-Every line in a report carries a receipt: what was checked, which source backed
-it, the label, and a short fingerprint so the line can be re-checked later.
-
-## Wording rule (important)
-Keep all wording light, plain, and friendly. This is a quality-control tool for
-general reports. No security jargon anywhere in code, comments, or docs (avoid
-"vulnerability", "exploit", "attack", "threat", and similar). Describe external
-sources plainly as "public data sources".
+## Key terms (use these consistently)
+- **Hari kabut (haze day):** a day when the district's daily mean PM10 is at
+  least 100 µg/m³.
+- **Kabut berapi (fire-haze day):** a haze day with at least one satellite fire
+  detection inside the district.
+- **Durasi (duration):** consecutive haze days up to that day, grouped 1–3,
+  4–14, and 15 or more.
+- **Profil kota / profil kabupaten:** which study area's estimates are applied
+  (Palangka Raya city or Pulang Pisau regency).
 
 ## Positioning
-crosscheck is the trust layer for the agentic economy: AI writes everything,
-crosscheck is the stamp that says a human can trust it.
+Satellites already see the fire, and air apps already show the smoke. Nobody
+tells the puskesmas who is coming. Sootsayer connects the fire pixel to the
+clinic queue.
