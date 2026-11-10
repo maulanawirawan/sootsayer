@@ -1,19 +1,21 @@
-# --- Rust (CLI core) ---
-/cli/target/
-**/*.rs.bk
+# --- Rust engine build output ---
+/engine/target/
 
-# --- Python (checker + MCP server) ---
+# --- Python (pipeline + MCP server) ---
 __pycache__/
 *.py[cod]
 .venv/
-venv/
 .pytest_cache/
 *.egg-info/
-.mypy_cache/
+/pipeline/.cache/
 
-# --- Scratch run output ---
-/out/
-*.tmp
+# --- Web app ---
+node_modules/
+/web/dist/
+.vercel/
+.env
+.env.*
+!.env.example
 
 # --- OS / editor noise ---
 .DS_Store
@@ -23,6 +25,3 @@ Thumbs.db
 
 # IMPORTANT: .kiro/ is intentionally TRACKED (specs, steering, hooks).
 # Do NOT add .kiro/ here. It is part of the project and the hackathon entry.
-
-# --- Rust engine build output ---
-/engine/target/
