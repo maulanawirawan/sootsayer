@@ -130,7 +130,7 @@ rules:
 - **Spec:** this `report-pipeline` spec (requirements -> design -> tasks).
 - **Steering:** `.kiro/steering/` keeps product, tech, and structure consistent,
   including the plain-wording rule.
-- **Hook:** `report-lint.kirohook` re-checks each report on save (house rule).
+- **Hook:** `.kiro/hooks/report-lint.json` re-checks each report on save (house rule).
 - **MCP:** the checker is exposed as an agent tool.
 
 ## Testing strategy

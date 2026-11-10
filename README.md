@@ -81,7 +81,7 @@ This project was built inside Kiro, using its features end to end:
   and approved before any code.
 - **Steering docs** — `.kiro/steering/` holds the product, tech, and structure
   guidance Kiro follows on every turn.
-- **Agent hook** — `.kiro/hooks/report-lint.kirohook` re-checks each generated
+- **Agent hook** — `.kiro/hooks/report-lint.json` re-checks each generated
   report the moment it is saved, enforcing the house rule automatically.
 - **MCP server** — crosscheck ships as an MCP tool so other agents can call it.
 

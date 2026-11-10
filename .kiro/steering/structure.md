@@ -17,7 +17,7 @@ crosscheck/
 ├─ .kiro/
 │  ├─ steering/              # product.md, tech.md, structure.md
 │  ├─ specs/report-pipeline/ # requirements.md, design.md, tasks.md
-│  └─ hooks/                 # report-lint.kirohook
+│  └─ hooks/                 # report-lint.json
 ├─ README.md
 ├─ BUSINESS.md
 ├─ LICENSE
