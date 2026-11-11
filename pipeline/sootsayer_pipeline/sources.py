@@ -11,6 +11,7 @@ import io
 import json
 import urllib.parse
 from collections import defaultdict
+from datetime import datetime, timedelta
 from statistics import fmean
 
 from . import KALIMANTAN_BBOX
@@ -95,6 +96,16 @@ def _in_bbox(lon: float, lat: float) -> bool:
     return w <= lon <= e and s <= lat <= n
 
 
+def _wib_date(acq_date: str, acq_time: str) -> str | None:
+    """FIRMS dates are UTC; Sootsayer's days are UTC+7 (same rule as api/fires.ts)."""
+    try:
+        t = str(acq_time).zfill(4)
+        moment = datetime(*map(int, acq_date.split("-")), int(t[:2]), int(t[2:4]))
+    except (ValueError, TypeError):
+        return None
+    return (moment + timedelta(hours=7)).date().isoformat()
+
+
 def _parse_firms_csv(text: str) -> list[list]:
     rows = []
     for r in csv.DictReader(io.StringIO(text)):
@@ -104,8 +115,11 @@ def _parse_firms_csv(text: str) -> list[list]:
             continue
         if not _in_bbox(lon, lat):
             continue
+        day = _wib_date(r.get("acq_date", ""), r.get("acq_time", ""))
+        if day is None:
+            continue
         frp = float(r["frp"]) if r.get("frp") not in (None, "") else None
-        rows.append([round(lon, 4), round(lat, 4), r["acq_date"], r.get("acq_time", ""),
+        rows.append([round(lon, 4), round(lat, 4), day, str(r.get("acq_time", "")).zfill(4),
                      frp, r.get("confidence", ""), r.get("daynight", "")])
     return rows
 
@@ -119,12 +133,21 @@ def firms_nrt(range_: str = "7d") -> tuple[list[list], dict]:
     return rows, {"source": "NASA FIRMS VIIRS NOAA-20 NRT", "url": url}
 
 
-def firms_area(map_key: str, start_date: str, days: int, source: str = "VIIRS_NOAA20_SP") -> list[list]:
-    """FIRMS area API (needs a free MAP_KEY). At most 10 days per request."""
+FIRMS_MAX_DAYS = 5  # the area API accepts DAY_RANGE 1..5
+
+
+def firms_area(map_key: str, start_date: str, days: int, source: str) -> list[list]:
+    """FIRMS area API (needs a free MAP_KEY), one request of at most 5 days.
+    Returns rows dated in UTC+7, so a request can include detections from the
+    evening before `start_date` (UTC) that fall on `start_date` locally."""
+    if not 1 <= days <= FIRMS_MAX_DAYS:
+        raise ValueError(f"FIRMS day range must be 1..{FIRMS_MAX_DAYS}")
     w, s, e, n = KALIMANTAN_BBOX
     url = FIRMS_AREA.format(key=urllib.parse.quote(map_key), source=source,
                             bbox=f"{w},{s},{e},{n}", days=days, date=start_date)
     text = fetch(url, timeout=180).decode("utf-8", "replace")
-    if text.lstrip().lower().startswith(("invalid", "error")):
-        raise RuntimeError(f"FIRMS area API: {text[:200]}")
+    head = text.lstrip()[:200]
+    if not head.lower().startswith("latitude"):
+        # FIRMS answers bad keys and limits with a plain-text message.
+        raise RuntimeError(f"FIRMS area API ({source}): {head}")
     return _parse_firms_csv(text)

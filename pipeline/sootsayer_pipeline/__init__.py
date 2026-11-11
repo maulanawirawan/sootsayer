@@ -36,3 +36,22 @@ KALIMANTAN_KOTA = frozenset({
 GRID_STEP_DEG = 0.4
 
 USER_AGENT = "sootsayer-pipeline/0.1 (+https://github.com/maulanawirawan/sootsayer)"
+
+
+def env(name: str) -> str:
+    """A setting from the environment, or from REPO/.env (git-ignored).
+
+    Keeps keys such as FIRMS_MAP_KEY out of the shell history and the repo.
+    """
+    import os
+
+    value = os.environ.get(name, "").strip()
+    if value:
+        return value
+    dotenv = REPO / ".env"
+    if dotenv.exists():
+        for line in dotenv.read_text(encoding="utf-8").splitlines():
+            key, sep, val = line.partition("=")
+            if sep and key.strip() == name:
+                return val.strip().strip('"').strip("'")
+    return ""
