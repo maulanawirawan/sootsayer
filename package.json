@@ -1,0 +1,10 @@
+{
+  "name": "sootsayer",
+  "private": true,
+  "type": "module",
+  "description": "Sootsayer: haze-to-puskesmas outlook on a real 3D globe. Root package for the Vercel functions in api/.",
+  "license": "MIT",
+  "engines": {
+    "node": "22.x"
+  }
+}

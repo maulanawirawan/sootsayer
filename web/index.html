@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sootsayer · haze to puskesmas outlook</title>
+    <meta
+      name="description"
+      content="Sootsayer foretells where wildfire smoke will settle over Kalimantan in the next five days and how many extra respiratory visits each puskesmas should expect, on a real 3D globe built from open data."
+    />
+    <meta property="og:title" content="Sootsayer · peramal jelaga untuk puskesmas" />
+    <meta property="og:description" content="Satellite fires + Copernicus smoke forecasts + a puskesmas study + a Rust engine in your browser." />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  </head>
+  <body>
+    <div id="map" aria-label="3D globe"></div>
+
+    <header id="topbar">
+      <div class="brand">
+        <span class="logo">Sootsayer</span>
+        <span id="brand-tagline" class="tagline"></span>
+      </div>
+      <div class="modes" role="group">
+        <button id="mode-live" type="button"></button>
+        <button id="mode-replay" type="button"></button>
+      </div>
+      <span id="hint" class="hint"></span>
+      <button id="lang" type="button" class="lang"></button>
+    </header>
+
+    <aside id="left" class="panel">
+      <section id="status"></section>
+      <section id="priority"></section>
+    </aside>
+
+    <aside id="right" class="panel hidden"></aside>
+
+    <footer id="bottom" class="panel">
+      <div id="timeline"></div>
+      <div id="legend"></div>
+      <div id="attribution">
+        Smoke: Copernicus CAMS via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) ·
+        Fires: <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank" rel="noopener">NASA FIRMS</a> ·
+        Day image: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> ·
+        Base: <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2016</a> by EOX (contains modified Copernicus Sentinel data 2016 &amp; 2017, CC BY 4.0) ·
+        Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> ·
+        Labels: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> ·
+        Puskesmas &amp; map data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors ·
+        Districts: geoBoundaries (BPS, WFP, OCHA ROAP; CC BY 3.0 IGO) ·
+        Rendering: <a href="https://maplibre.org" target="_blank" rel="noopener">MapLibre</a>
+      </div>
+    </footer>
+
+    <div id="intro" class="intro hidden"></div>
+    <div id="loading" class="loading hidden">Sootsayer</div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

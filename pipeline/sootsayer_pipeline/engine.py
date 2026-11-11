@@ -10,7 +10,6 @@ import json
 import os
 import subprocess
 from pathlib import Path
-from statistics import fmean
 from typing import Any
 
 from . import REPO, WEB_DATA
@@ -60,7 +59,9 @@ def district_pm10(districts: list[dict], pm10_cells: list[list[float | None]]) -
         series = []
         for d in range(n_days):
             vals = [pm10_cells[c][d] for c in cells if pm10_cells[c][d] is not None]
-            series.append(round(fmean(vals), 1) if vals else None)
+            # Plain left-to-right mean, no rounding: web/src/data.ts does exactly
+            # the same, so both feed the engine identical numbers.
+            series.append(sum(vals) / len(vals) if vals else None)
         out[f["properties"]["code"]] = series
     return out
 

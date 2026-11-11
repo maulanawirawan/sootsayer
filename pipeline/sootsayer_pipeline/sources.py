@@ -38,11 +38,23 @@ def _daily_means(times: list[str], values: list[float | None]) -> dict[str, floa
 
 
 def cams_daily(cells: list[list[float]], *, start_date: str | None = None, end_date: str | None = None,
-               past_days: int | None = None, forecast_days: int | None = None, cache: bool = False):
+               past_days: int | None = None, forecast_days: int | None = None, cache: bool = False,
+               only: list[int] | None = None):
     """Daily mean PM2.5 and PM10 (µg/m³, UTC+7 days) for each [lon, lat] cell.
 
+    `only` limits the request to those cell indices (the others come back as
+    None), matching what api/air.ts does for live data.
     Returns (days, pm25, pm10, meta) where pm25[cell][day] may be None.
     """
+    if only is not None:
+        days, sub25, sub10, meta = cams_daily([cells[i] for i in only], start_date=start_date,
+                                              end_date=end_date, past_days=past_days,
+                                              forecast_days=forecast_days, cache=cache)
+        pm25 = [[None] * len(days) for _ in cells]
+        pm10 = [[None] * len(days) for _ in cells]
+        for k, i in enumerate(only):
+            pm25[i], pm10[i] = sub25[k], sub10[k]
+        return days, pm25, pm10, meta
     params = {"hourly": "pm2_5,pm10", "domains": "cams_global", "timezone": "Asia/Jakarta",
               "cell_selection": "nearest"}
     if start_date and end_date:

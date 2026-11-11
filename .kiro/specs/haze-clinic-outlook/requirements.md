@@ -30,7 +30,10 @@ satellite imagery, and terrain elevation, using only the open sources listed in
 image of that date and the satellite fire detections available for that date.
 
 1.3. THE SYSTEM SHALL draw the modelled smoke field (CAMS PM2.5) for the
-selected day with a legend in µg/m³ that includes the Indonesian ISPU bands.
+selected day with a legend in µg/m³ that marks the WHO 2021 24-hour guideline
+(15 µg/m³) and the study's haze threshold (PM10 100 µg/m³). It SHALL NOT
+convert model values to ISPU index numbers, which are defined for station
+measurements.
 
 1.4. IF a data source fails or returns data older than expected, THEN THE
 SYSTEM SHALL name the source and the data time on screen, and SHALL NOT present
