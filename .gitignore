@@ -25,3 +25,4 @@ Thumbs.db
 
 # IMPORTANT: .kiro/ is intentionally TRACKED (specs, steering, hooks).
 # Do NOT add .kiro/ here. It is part of the project and the hackathon entry.
+/mcp-server/.venv/

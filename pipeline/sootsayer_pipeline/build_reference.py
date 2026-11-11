@@ -29,7 +29,10 @@ SIMPLIFY_DEG = 0.004  # about 450 m; plenty for a 45 km smoke grid
 ROUND = 4  # about 11 m
 
 EXCLUDE_NAME = re.compile(r"pembantu|pustu|keliling|poskesdes|polindes|apotek|klinik pratama", re.I)
-PUSKESMAS_NAME = re.compile(r"puskesmas|^pkm\s", re.I)
+# The name must start with Puskesmas (optionally after UPT/UPTD) or PKM. This
+# keeps out streets and places named after one, such as "Jalan Puskesmas".
+PUSKESMAS_NAME = re.compile(r"^\s*(uptd?\.?\s+)?(puskesmas|pkm)\b", re.I)
+NOT_A_FACILITY_TAGS = ("highway", "railway", "waterway", "place", "landuse", "natural", "route")
 
 
 def slug(text: str) -> str:
@@ -127,11 +130,15 @@ def build_puskesmas(districts: list[dict]) -> tuple[list[dict], dict]:
     data = overpass(q)
     shapes = [(d["code"], prep(shape(d["geometry"])), shape(d["geometry"])) for d in districts]
     out, stats = [], {"osm_elements": len(data["elements"]), "excluded_by_name": 0,
-                      "outside_kalimantan": 0, "duplicates": 0, "snapped_to_nearest": 0}
+                      "excluded_not_facility": 0, "outside_kalimantan": 0, "duplicates": 0,
+                      "snapped_to_nearest": 0}
     seen = []
     for el in data["elements"]:
         tags = el.get("tags", {})
         name = tags.get("name", "").strip()
+        if any(t in tags for t in NOT_A_FACILITY_TAGS):
+            stats["excluded_not_facility"] += 1
+            continue
         if not PUSKESMAS_NAME.search(name) or EXCLUDE_NAME.search(name):
             stats["excluded_by_name"] += 1
             continue
@@ -151,11 +158,13 @@ def build_puskesmas(districts: list[dict]) -> tuple[list[dict], dict]:
             else:
                 stats["outside_kalimantan"] += 1
                 continue
-        key = name.lower()
-        if any(k == key and abs(la - lat) < 0.003 and abs(lo - lon) < 0.003 for k, la, lo in seen):
+        # One puskesmas per name per district: OSM often has both a node and a
+        # building outline for the same facility, sometimes far apart.
+        key = (code, " ".join(name.lower().split()))
+        if key in seen:
             stats["duplicates"] += 1
             continue
-        seen.append((key, lat, lon))
+        seen.append(key)
         out.append({
             "id": f"osm:{el['type']}/{el['id']}",
             "name": name,

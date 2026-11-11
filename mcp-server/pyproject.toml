@@ -1,0 +1,16 @@
+[project]
+name = "sootsayer-mcp"
+version = "0.1.0"
+description = "MCP server: lets AI agents ask Sootsayer for the haze-to-puskesmas outlook."
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "mcp>=2.3,<3",
+    "sootsayer-pipeline",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+sootsayer-pipeline = { path = "../pipeline", editable = true }
