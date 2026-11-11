@@ -30,7 +30,9 @@ APP_URL = "https://sootsayer.vercel.app"
 REPLAY_DEFAULT_DAY = "2026-10-15"
 LIVE_TTL_S = 30 * 60
 
-Mode = Literal["live", "replay"]
+# live: today's forecast; replay: October 2026 in hindsight (archived model data);
+# forecast: October 2026 as forecast on the morning of `date` (CAMS via ADS).
+Mode = Literal["live", "replay", "forecast"]
 Lang = Literal["id", "en"]
 
 
@@ -123,9 +125,47 @@ def _window(ds: dict, day: str | None) -> tuple[str, str]:
     return start, min(_plus(start, 4), ds["days"][-1])
 
 
+def _forecast_file(region: str) -> dict:
+    key = f"fc:{region}"
+    if key not in _CACHE:
+        path = _region(region)["region"].data_dir / "replay-2026-10-forecast.json"
+        if not path.exists():
+            raise ValueError(f"no forecast replay for region '{region}' (needs build_forecast with an ADS key)")
+        _CACHE[key] = (time.time(), json.loads(path.read_text(encoding="utf-8")))
+    return _CACHE[key][1]
+
+
+def _as_forecast(region: str, ds: dict, start: str) -> dict:
+    """The replay as seen on the morning of `start`: hindsight before it, the CAMS
+    forecast of that morning for the window, no fire data for window days.
+    Mirrors asForecast() in web/src/data.ts."""
+    fc = _forecast_file(region)
+    if start not in fc["issue_dates"]:
+        raise ValueError(f"no forecast run for {start}; forecast replay covers {fc['issue_dates'][0]}..{fc['issue_dates'][-1]}")
+    issue, d0 = fc["issue_dates"].index(start), ds["days"].index(start)
+
+    def replace(cells: list, issued: list) -> list:
+        out = []
+        for c, series in enumerate(cells):
+            copy = list(series)
+            for k in range(fc["lead_days"]):
+                if d0 + k < len(copy):
+                    copy[d0 + k] = issued[k][c]
+            out.append(copy)
+        return out
+
+    return {**ds, "mode": "forecast", "pm10": replace(ds["pm10"], fc["pm10_ugm3"][issue]),
+            "pm25": replace(ds["pm25"], fc["pm25_ugm3"][issue]),
+            "known": {d for d in ds["known"] if d < start},
+            "stamps": [*ds["stamps"], {"source": f"Copernicus CAMS (ADS) {fc['runs'][issue]}", "time": fc["generated_at"]}]}
+
+
 def _input(region: str, mode: Mode, day: str | None, baselines: dict[str, float] | None = None) -> tuple[dict, dict]:
-    ref, ds = _region(region), _dataset(region, mode)
+    ref = _region(region)
+    ds = _dataset(region, "replay" if mode == "forecast" else mode)
     window_start, last = _window(ds, day)
+    if mode == "forecast":
+        ds = _as_forecast(region, ds, window_start)
     n = ds["days"].index(last) + 1
     days = ds["days"][:n]
     pm = {k: v[:n] for k, v in district_pm10(ref["districts"], ds["pm10"]).items()}
@@ -152,7 +192,8 @@ def _pct(r: dict | None) -> str:
 
 
 def _link(region: str, mode: Mode, day: str | None = None, **extra: str) -> str:
-    q = {"region": region, "mode": mode, **({"date": day} if day else {}), **extra}
+    view = {"mode": "replay", "view": "forecast"} if mode == "forecast" else {"mode": mode}
+    q = {"region": region, **view, **({"date": day} if day else {}), **extra}
     return f"{APP_URL}/?{urllib.parse.urlencode(q)}"
 
 
@@ -190,7 +231,8 @@ def priority(region: str = DEFAULT_REGION, mode: Mode = "live", date: str | None
     expected relative change in respiratory visits over a five-day window.
     mode="live" uses today's CAMS forecast and NASA FIRMS fires; mode="replay"
     replays October 2026 from archived CAMS data (window starts at `date`,
-    default 2026-10-15)."""
+    default 2026-10-15); mode="forecast" replays October 2026 with the CAMS
+    forecast that was available at 06:00 WIB on `date`."""
     out, ds = _outlook(region, mode, date)
     n = len(_region(region)["districts"])
     ranked = [p for p in out["priority"] if p["complete"] and p["haze_days"] > 0][: max(1, min(top, n))]
@@ -205,7 +247,7 @@ def priority(region: str = DEFAULT_REGION, mode: Mode = "live", date: str | None
         "incomplete": [p["district_name"] for p in out["priority"] if not p["complete"]],
         "data": _data(ds),
         "method": out["method"],
-        "app": _link(region, mode, out["window_start"] if mode == "replay" else None),
+        "app": _link(region, mode, out["window_start"] if mode != "live" else None),
     }
 
 
@@ -249,7 +291,7 @@ def haze_outlook(district: str, mode: Mode = "live", date: str | None = None) ->
         "complete": d["complete"],
         "data": _data(ds),
         "method": out["method"],
-        "app": _link(rid, mode, out["window_start"] if mode == "replay" else None, district=code),
+        "app": _link(rid, mode, out["window_start"] if mode != "live" else None, district=code),
     }
 
 
@@ -304,7 +346,7 @@ def clinic_plan(puskesmas: str, unit_cadr_m3h: float | None = None, floor_area_m
         "clean_air_room": room,
         "data": _data(ds),
         "method": out["method"],
-        "app": _link(rid, mode, out["window_start"] if mode == "replay" else None, puskesmas=p["id"]),
+        "app": _link(rid, mode, out["window_start"] if mode != "live" else None, puskesmas=p["id"]),
     }
 
 
@@ -325,10 +367,23 @@ def daily_brief(region: str = DEFAULT_REGION, mode: Mode = "live", date: str | N
         "data_times": ds["stamps"],
         "errors": ds["errors"],
         "top": max(1, min(top, 20)),
-        "link": _link(region, mode, inp["window_start"] if mode == "replay" else None),
+        "link": _link(region, mode, inp["window_start"] if mode != "live" else None),
     })
     return {**out, "region": region, "mode": mode,
             "instructions": "Send `text` exactly as written. Do not round, drop ranges, or remove limits."}
+
+
+@mcp.tool()
+def forecast_check(region: str = DEFAULT_REGION) -> dict:
+    """How right was the forecast? For October 2026 and each lead day (0 = the
+    first day of the window, up to +4 days), how many district haze days the
+    CAMS forecast available at 06:00 WIB caught, missed, or raised falsely,
+    compared with the hindsight replay (archived model data, not station
+    measurements). Computed by the Rust engine at build time."""
+    fc = _forecast_file(region)
+    return {"region": region, "issue_dates": [fc["issue_dates"][0], fc["issue_dates"][-1]],
+            "check": fc["check"], "source": fc["source"],
+            "app": _link(region, "forecast", REPLAY_DEFAULT_DAY)}
 
 
 if __name__ == "__main__":

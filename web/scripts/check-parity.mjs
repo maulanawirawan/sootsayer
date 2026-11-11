@@ -96,6 +96,45 @@ for (const region of regions.filter((r) => r.replay)) {
     });
   }
 }
+// Forecast check: WASM == CLI, and both equal the table the Python pipeline
+// stored (so the JS and Python input builders agree too).
+const meanOf = (cellIdx, value) => {
+  let sum = 0;
+  let n = 0;
+  for (const c of cellIdx) {
+    const v = value(c);
+    if (v !== null && v !== undefined) {
+      sum += v;
+      n += 1;
+    }
+  }
+  return n ? sum / n : null;
+};
+for (const region of regions.filter((r) => r.replay?.forecast)) {
+  const fc = read(region.id, region.replay.forecast.file);
+  const replay = read(region.id, region.replay.file);
+  const districts = read(region.id, 'districts.geojson').features;
+  const pairs = [];
+  fc.issue_dates.forEach((start, i) => {
+    for (let k = 0; k < fc.lead_days; k++) {
+      const d = new Date(`${start}T00:00:00Z`);
+      d.setUTCDate(d.getUTCDate() + k);
+      const di = replay.days.indexOf(d.toISOString().slice(0, 10));
+      for (const f of districts) {
+        const cells = f.properties.cells;
+        const forecast = meanOf(cells, (c) => fc.pm10_ugm3[i][k][c]);
+        const hindsight = di < 0 ? null : meanOf(cells, (c) => replay.cams.pm10_ugm3[c][di]);
+        pairs.push([k, forecast, hindsight]);
+      }
+    }
+  });
+  const payload = { lead_days: fc.lead_days, pairs };
+  compare(`${region.id} forecast check`, 'ss_forecast_check', 'forecast-check', payload);
+  const fromWasm = JSON.parse(viaWasm('ss_forecast_check', JSON.stringify(payload))).result;
+  const same = JSON.stringify(fromWasm) === JSON.stringify(fc.check);
+  console.log(`${same ? 'identical' : 'MISMATCH '}  ${`${region.id} check vs pipeline`.padEnd(30)} ${pairs.length} pairs`);
+  if (!same) failed = true;
+}
 if (failed) {
   console.error('MISMATCH between WebAssembly and native CLI output');
   process.exit(1);

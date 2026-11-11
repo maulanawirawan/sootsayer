@@ -20,6 +20,32 @@ const STRINGS = {
     en: 'Text and numbers come from the same Rust engine as the map and the MCP server, not from a language model. Send it as is.',
   },
   briefFailed: { id: 'Briefing tidak bisa dibuat', en: 'Could not build the briefing' },
+  viewHindsight: { id: 'Yang terjadi', en: 'What happened' },
+  viewForecast: { id: 'Yang diprakirakan', en: 'What was forecast' },
+  viewLabel: { id: 'Tampilan putar ulang', en: 'Replay view' },
+  forecastLabel: {
+    id: 'Seperti diprakirakan: prakiraan CAMS yang tersedia pukul 06.00 WIB pada {date} (run {run}). Hari sebelumnya memakai data arsip.',
+    en: 'As forecast: the CAMS forecast available at 06:00 WIB on {date} (run {run}). Earlier days use archived data.',
+  },
+  forecastMissing: { id: 'Tidak ada run prakiraan untuk {date}; menampilkan yang terjadi.', en: 'No forecast run for {date}; showing what happened.' },
+  checkTitle: { id: 'Cek prakiraan: seberapa tepat ramalannya?', en: 'Forecast check: how right was the forecast?' },
+  checkHint: {
+    id: 'Hari kabut per kabupaten/kota, {from}–{to} Okt 2026: prakiraan pagi itu dibandingkan dengan yang terjadi (data model arsip, bukan stasiun).',
+    en: 'District haze days, {from}–{to} Oct 2026: the morning forecast against what happened (archived model data, not stations).',
+  },
+  checkLead0: { id: 'Hari pertama', en: 'First day' },
+  checkLead: { id: '+{n} hari', en: '+{n} days' },
+  checkCaught: { id: 'tertangkap {hits} dari {events} ({pct})', en: 'caught {hits} of {events} ({pct})' },
+  checkFalse: { id: '{n} alarm palsu ({pct} dari peringatan)', en: '{n} false alarms ({pct} of warnings)' },
+  checkNoEvents: { id: 'tidak ada hari kabut', en: 'no haze days' },
+  checkSource: {
+    id: 'Sumber prakiraan: Copernicus CAMS, Atmosphere Data Store (DOI 10.24381/04a0b097), run 12.00 UTC sehari sebelumnya (terbit sebelum 05.00 WIB); CC BY 4.0.',
+    en: 'Forecast source: Copernicus CAMS, Atmosphere Data Store (DOI 10.24381/04a0b097), run of 12:00 UTC the day before (published before 05:00 WIB); CC BY 4.0.',
+  },
+  checkDefs: {
+    id: 'Hari kabut: rata-rata harian PM10 kabupaten/kota ≥ {threshold} µg/m³. Tertangkap = diprakirakan dan terjadi. Alarm palsu = diprakirakan tetapi tidak terjadi. Selisih di hari pertama sebagian berasal dari cara titik grid dipilih, bukan dari prakiraan.',
+    en: 'Haze day: district daily mean PM10 ≥ {threshold} µg/m³. Caught = forecast and it happened. False alarm = forecast but it did not happen. Part of the first-day difference comes from how grid points are picked, not from the forecast.',
+  },
   briefCopy: { id: 'Salin', en: 'Copy' },
   briefCopied: { id: 'Tersalin', en: 'Copied' },
   briefWhatsApp: { id: 'Bagikan ke WhatsApp', en: 'Share on WhatsApp' },
@@ -62,8 +88,8 @@ const STRINGS = {
   imageryNight: { id: 'Citra malam NASA {date} (VIIRS Day/Night Band)', en: 'NASA night image {date} (VIIRS Day/Night Band)' },
   tourControls: { id: 'Spasi: jeda · →: lanjut · Esc: keluar', en: 'Space: pause · →: next · Esc: exit' },
   tour1: {
-    id: 'Musim kabut 2026: Kemenkes mencatat 401.586 kasus ISPA terkait karhutla di 7 provinsi per 2 November.',
-    en: 'The 2026 haze season: Indonesia’s health ministry counted 401,586 respiratory infections linked to fires in 7 provinces by 2 November.',
+    id: 'Musim kabut 2026: Kemenkes mencatat sedikitnya 425.167 kasus ISPA akibat kabut karhutla di 7 provinsi, 20 Agustus–5 November.',
+    en: 'The 2026 haze season: Indonesia’s health ministry counted at least 425,167 respiratory infections from fire haze in 7 provinces, 20 August to 5 November.',
   },
   tour2: {
     id: 'Semua data terbuka: citra NASA hari itu, titik api NASA FIRMS, dan asap model Copernicus CAMS.',
@@ -187,6 +213,53 @@ const STRINGS = {
   fireCount: { id: 'titik api', en: 'fire detections' },
   district: { id: 'Kabupaten/kota', en: 'District' },
   lang: { id: 'EN', en: 'ID' },
+  legendChange: { id: 'Warna kabupaten & pilar: perubahan kunjungan pernapasan', en: 'District & pillar colour: change in respiratory visits' },
+  legendWhoTitle: { id: '15 µg/m³ = pedoman WHO 24 jam', en: '15 µg/m³ = WHO 24-hour guideline' },
+  legendWhoTick: { id: 'WHO', en: 'WHO' },
+  legendDays: { id: 'Titik hari', en: 'Day dots' },
+  help: { id: 'Cara membaca peta ini', en: 'How to read this map' },
+  helpTitle: { id: 'Cara membaca Sootsayer', en: 'How to read Sootsayer' },
+  helpGlobe: {
+    id: 'Globe: citra satelit NASA pada hari terpilih. Kabut cokelat = PM2.5 model Copernicus CAMS (rata-rata harian). Titik oranye = deteksi api satelit NASA FIRMS hari itu.',
+    en: 'Globe: NASA’s satellite image of the selected day. Brown haze = Copernicus CAMS modelled PM2.5 (daily mean). Orange dots = NASA FIRMS fire detections that day.',
+  },
+  helpColour: {
+    id: 'Warna kabupaten/kota: perkiraan perubahan kunjungan pernapasan puskesmas hari itu, dari biru (turun) lewat krem (tetap) ke merah (naik). Abu-abu = data kosong.',
+    en: 'District colour: the expected change in puskesmas respiratory visits that day, from blue (fewer) through cream (no change) to red (more). Grey = no data.',
+  },
+  helpPillars: {
+    id: 'Pilar: satu puskesmas dari OpenStreetMap. Tinggi = perkiraan kunjungan pernapasan per hari. Klik pilar untuk rincian, kunjungan biasa Anda, ruang udara bersih, dan PM2.5 di ruang tunggu.',
+    en: 'Pillar: one puskesmas from OpenStreetMap. Height = expected respiratory visits per day. Click one for details, your usual visits, a clean-air room, and PM2.5 in the waiting room.',
+  },
+  helpTimeline: {
+    id: 'Garis waktu: pilih hari. Titik = status paling berat di kabupaten/kota mana pun hari itu (bersih, hari kabut, kabut berapi, data kosong). Putar memutar hari demi hari.',
+    en: 'Timeline: pick a day. Dot = the most severe status of any district that day (clear, haze day, fire-haze day, no data). Play steps through the days.',
+  },
+  helpPriority: {
+    id: 'Prioritas posko & rumah oksigen: kabupaten/kota diurutkan menurut rata-rata perubahan kunjungan selama 5 hari, selalu dengan rentang 95%. Klik untuk terbang ke sana.',
+    en: 'Priority for posko & oxygen houses: districts ranked by the mean change in visits over the 5-day window, always with the 95% range. Click one to fly there.',
+  },
+  helpBrief: {
+    id: 'Briefing untuk Dinkes: teks siap kirim (salin, WhatsApp, unduh, cetak), ditulis engine Rust yang sama dengan peta dan alat MCP.',
+    en: 'Briefing for the health office: ready-to-send text (copy, WhatsApp, download, print), written by the same Rust engine as the map and the MCP tool.',
+  },
+  helpModes: {
+    id: 'Langsung = prakiraan CAMS terbaru untuk 5 hari ke depan. Putar ulang Okt 2026 = puncak kabut tahun ini dari data arsip (hindsight).',
+    en: 'Live = the latest CAMS forecast for the next 5 days. Replay Oct 2026 = this year’s haze peak from archived data (hindsight).',
+  },
+  helpForecast: {
+    id: 'Di putar ulang, "Yang diprakirakan" menampilkan prakiraan yang tersedia pukul 06.00 WIB pagi itu, dan kartu cek menghitung seberapa sering prakiraan itu tepat.',
+    en: 'In the replay, "What was forecast" shows the forecast available at 06:00 WIB that morning, and the check card counts how often it was right.',
+  },
+  helpData: {
+    id: 'Data Anda tetap di browser ini: kunjungan biasa, profil, dan daftar puskesmas CSV. Tidak ada yang diunggah.',
+    en: 'Your data stays in this browser: usual visits, profiles, and your puskesmas CSV. Nothing is uploaded.',
+  },
+  helpLimits: {
+    id: 'Batas: metodenya dari satu studi enam puskesmas di Kalimantan Tengah (Phung dkk. 2025). Ini alat bantu keputusan, bukan diagnosis.',
+    en: 'Limits: the method comes from one study of six puskesmas in Central Kalimantan (Phung et al. 2025). Decision support, not diagnosis.',
+  },
+  helpTour: { id: 'Putar tur berpemandu', en: 'Play the guided tour' },
 } as const;
 
 export type Key = keyof typeof STRINGS;

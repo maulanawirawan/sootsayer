@@ -5,12 +5,14 @@ import './style.css';
 import { download, parsePuskesmasCsv, toCsv } from './csv';
 import {
   addDays,
+  asForecast,
   buildOutlookInput,
   districtMean,
   loadLive,
   loadOverrides,
   loadReference,
   loadRegions,
+  loadForecastReplay,
   loadReplay,
   loadReplayFires,
   multipolygon,
@@ -25,10 +27,19 @@ import { fmtDate, hasKey, lang, setLang, t } from './i18n';
 import { createMap, hexagon, LAYER_GROUPS, type Bounds, type LayerGroup, type SootMap } from './map';
 import { renderSmoke, smokeCoordinates } from './smoke';
 import { runTour, type TourApi } from './tour';
-import type { CleanAirOutput, DayStatus, OutlookOutput, Profile, Puskesmas, RegionInfo, RegionsIndex } from './types';
+import type {
+  CleanAirOutput,
+  DayStatus,
+  ForecastReplayFile,
+  OutlookOutput,
+  Profile,
+  Puskesmas,
+  RegionInfo,
+  RegionsIndex,
+} from './types';
 import * as ui from './ui';
 
-type Selection = { kind: 'district'; code: string } | { kind: 'puskesmas'; id: string } | { kind: 'brief' } | null;
+type Selection = { kind: 'district'; code: string } | { kind: 'puskesmas'; id: string } | { kind: 'brief' } | { kind: 'help' } | null;
 type Mode = 'live' | 'replay';
 
 const REPLAY_DEFAULT_DAY = '2026-10-15';
@@ -51,9 +62,25 @@ interface State {
   layers: ui.LayerToggles;
   csv: { ok: string | null; problems: string[] };
   notice: string | null;
+  /** Replay view: what happened (hindsight) or what was forecast that morning. */
+  view: View;
+  forecast: ForecastReplayFile | null;
+  /** The replay as forecast for the selected morning; null in every other view. */
+  fds: Dataset | null;
 }
 
+type View = 'hindsight' | 'forecast';
+
 let S: State;
+
+/** The dataset the outlook, the smoke layer, and the briefing use right now. */
+function viewDs(): Dataset {
+  return S.fds ?? S.ds;
+}
+
+function forecastFile(): string | null {
+  return S.ref.region.replay?.forecast?.file ?? null;
+}
 
 function regionLabel(r: RegionInfo): string {
   const key = `region_${r.id}`;
@@ -116,11 +143,39 @@ function windowBounds(): { start: string; last: string } {
 
 function outlookInput() {
   const w = windowBounds();
-  return buildOutlookInput(S.ref, S.ds, S.fireCounts, S.overrides, w.start, w.last);
+  return buildOutlookInput(S.ref, viewDs(), S.fireCounts, S.overrides, w.start, w.last);
 }
 
 function recompute(): void {
+  S.fds = null;
+  if (S.ds.mode === 'replay' && S.view === 'forecast' && S.forecast) {
+    S.fds = asForecast(S.ds, S.forecast, S.selected);
+    S.notice = S.fds ? null : t('forecastMissing', { date: fmtDate(S.selected) });
+  }
   S.outlook = engine.outlook(outlookInput());
+}
+
+/** Load the forecast replay of this region when the forecast view needs it. */
+async function ensureForecast(): Promise<void> {
+  const file = forecastFile();
+  if (S.view !== 'forecast' || S.ds?.mode !== 'replay' || !file || S.forecast?.region === S.ref.region.id) return;
+  try {
+    S.forecast = await loadForecastReplay(S.ref.region.id, file);
+  } catch (e) {
+    // Never leave "what was forecast" selected over hindsight data.
+    S.forecast = null;
+    S.view = 'hindsight';
+    S.ds.errors.push({ source: 'Copernicus CAMS (ADS)', error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+async function setView(v: View): Promise<void> {
+  if (v === S.view) return;
+  S.view = v;
+  await ensureForecast();
+  recompute();
+  render();
+  setUrl();
 }
 
 function pillars(dayIdx: number): GeoJSON.FeatureCollection {
@@ -163,6 +218,8 @@ function renderHeader(mode?: Mode): void {
   replay.classList.toggle('active', m === 'replay');
   ui.$('#lang').textContent = t('lang');
   ui.$('#hint').textContent = t('clickHint');
+  ui.$('#help').title = t('help');
+  ui.$('#help').setAttribute('aria-label', t('help'));
   if (S?.regions) {
     const box = ui.$('#regions');
     box.setAttribute('aria-label', t('regionLabel'));
@@ -193,18 +250,19 @@ function districtPm25(code: string, date: string): number | null {
 }
 
 function briefText(): { text: string; title: string } {
+  const ds = viewDs();
   const b = engine.brief({
     outlook: outlookInput(),
     lang: lang(),
     region_name: S.ref.region.name,
-    mode: S.ds.mode,
+    mode: S.fds ? 'forecast' : S.ds.mode,
     // Source names only (no words to translate); the briefing's mode line
     // already says when the data is a hindsight replay.
-    data_times: S.ds.stamps.map((s) => ({
+    data_times: ds.stamps.map((s) => ({
       source: s.label !== 'replay' ? s.label : S.ds.replayFiresAvailable ? 'Copernicus CAMS + NASA FIRMS' : 'Copernicus CAMS',
       time: s.when,
     })),
-    errors: S.ds.errors.map((e) => ({
+    errors: ds.errors.map((e) => ({
       source: e.source.replace(/\s+/g, ' ').trim().slice(0, 120) || 'source',
       error: e.error.replace(/\s+/g, ' ').trim().slice(0, 300) || 'unknown error',
     })),
@@ -216,9 +274,14 @@ function briefText(): { text: string; title: string } {
 
 function renderSelection(): void {
   const sel = S.selection;
+  S.map.selectPuskesmas(sel?.kind === 'puskesmas' ? sel.id : null);
   if (!sel) {
     S.map.selectDistrict(null);
     ui.closePanel();
+    return;
+  }
+  if (sel.kind === 'help') {
+    ui.renderHelp(Boolean(forecastFile()), `/?tour=1&lang=${lang()}&region=${S.ref.region.id}`, clearSelection);
     return;
   }
   if (sel.kind === 'brief') {
@@ -255,10 +318,13 @@ function renderPuskesmasList(): void {
 }
 
 function render(): void {
-  const { ref, ds, map, outlook } = S;
+  const { ref, map, outlook } = S;
+  const ds = viewDs();
   renderHeader();
+  ui.renderViews(S.ds.mode === 'replay' && Boolean(forecastFile()), S.view, (v) => void setView(v));
   const di = ds.days.indexOf(S.selected);
-  map.setSmoke(`${ref.region.id}|${ds.mode}|${ds.stamps.map((s) => s.when).join(',')}|${di}`, () => renderSmoke(ref.grid, ds.pm25, di), smokeCoordinates(ref.grid));
+  const smokeKey = `${ref.region.id}|${ds.mode}|${S.fds ? `forecast:${S.selected}` : 'hindsight'}|${ds.stamps.map((s) => s.when).join(',')}|${di}`;
+  map.setSmoke(smokeKey, () => renderSmoke(ref.grid, ds.pm25, di), smokeCoordinates(ref.grid));
   const img = imageryFor(S.selected);
   map.setImagery(img.date);
   const when = fmtDate(img.date, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -286,7 +352,13 @@ function render(): void {
     openBrief,
   );
   renderPuskesmasList();
-  ui.renderStatus(ds, ref.meta, imageryNote, S.notice);
+  ui.renderCheck(S.fds ? S.forecast : null);
+  const issue = S.fds && S.forecast ? S.forecast.issue_dates.indexOf(S.selected) : -1;
+  const forecastNote =
+    issue >= 0 && S.forecast
+      ? t('forecastLabel', { date: fmtDate(S.selected, { day: 'numeric', month: 'long', year: 'numeric' }), run: S.forecast.runs[issue] })
+      : null;
+  ui.renderStatus(ds, ref.meta, imageryNote, S.notice, forecastNote);
   renderSelection();
 }
 
@@ -295,6 +367,8 @@ function setUrl(): void {
   url.searchParams.set('region', S.ref.region.id);
   url.searchParams.set('mode', S.ds.mode);
   url.searchParams.set('date', S.selected);
+  if (S.ds.mode === 'replay' && S.view === 'forecast') url.searchParams.set('view', 'forecast');
+  else url.searchParams.delete('view');
   history.replaceState(null, '', url);
 }
 
@@ -334,6 +408,12 @@ function togglePlay(): void {
 function clearSelection(): void {
   S.selection = null;
   renderSelection();
+}
+
+/** Glide the camera to a puskesmas, keeping it clear of the open panels. */
+function focusPuskesmas(id: string): void {
+  const p = S.ref.puskesmas.find((x) => x.id === id);
+  if (p) S.map.focusPoint([p.lon, p.lat]);
 }
 
 function openBrief(): void {
@@ -426,10 +506,12 @@ async function switchMode(mode: Mode, preferredDate?: string): Promise<void> {
     const ds = m === 'live' ? await loadLive(S.ref) : await loadReplay(S.ref);
     const fireCounts = computeFireCounts(S.ref, ds);
     S.ds = ds;
+    S.fds = null;
     S.fireCounts = fireCounts;
     S.summary = summarize(S.ref, ds, fireCounts);
     const fallback = m === 'live' ? ds.anchor : ds.selectable.includes(REPLAY_DEFAULT_DAY) ? REPLAY_DEFAULT_DAY : ds.selectable[0];
     S.selected = preferredDate && ds.selectable.includes(preferredDate) ? preferredDate : fallback;
+    await ensureForecast();
     recompute();
     setUrl();
     render();
@@ -460,6 +542,7 @@ async function switchRegion(id: string, opts: { fly?: boolean; mode?: Mode; date
     const ref = await loadReference(info);
     S.ref = ref;
     S.selection = null;
+    S.forecast = null;
     S.csv = { ok: null, problems: [] };
     S.map.setDistricts(ref.districts);
     await switchMode(opts.mode ?? S.ds?.mode ?? 'live', opts.date ?? (S.ds?.mode === 'replay' ? S.selected : undefined));
@@ -471,8 +554,25 @@ async function switchRegion(id: string, opts: { fly?: boolean; mode?: Mode; date
 
 // ---------- boot ----------
 
+/** Keep the side panels between the top bar and the bottom panel, whatever their heights (wrapped legend or credits). */
+function watchLayout(): void {
+  const root = document.documentElement;
+  const bottom = ui.$('#bottom');
+  const top = ui.$('#topbar');
+  const apply = () => {
+    root.style.setProperty('--bottom-space', `${Math.round(window.innerHeight - bottom.getBoundingClientRect().top)}px`);
+    root.style.setProperty('--top-y', `${Math.round(top.getBoundingClientRect().bottom + 10)}px`);
+  };
+  const ro = new ResizeObserver(apply);
+  ro.observe(bottom);
+  ro.observe(top);
+  window.addEventListener('resize', apply);
+  apply();
+}
+
 async function boot(): Promise<void> {
   setLang(lang());
+  watchLayout();
   const params = new URLSearchParams(location.search);
   const mode: Mode = params.get('mode') === 'replay' ? 'replay' : 'live';
   const tour = params.get('tour') === '1';
@@ -518,6 +618,9 @@ async function boot(): Promise<void> {
       layers: { imagery: true, night: params.get('night') === '1', smoke: true, fires: true, pillars: true, districts: true },
       csv: { ok: null, problems: [] },
       notice: null,
+      view: params.get('view') === 'forecast' ? 'forecast' : 'hindsight',
+      forecast: null,
+      fds: null,
     };
     if (import.meta.env.DEV) (window as unknown as { sootsayer: State }).sootsayer = S;
     for (const g of Object.keys(LAYER_GROUPS) as LayerGroup[]) map.setGroupVisible(g, S.layers[g]);
@@ -528,6 +631,11 @@ async function boot(): Promise<void> {
     });
     map.onPuskesmas((id) => {
       S.selection = { kind: 'puskesmas', id };
+      renderSelection();
+      focusPuskesmas(id);
+    });
+    ui.$('#help').addEventListener('click', () => {
+      S.selection = S.selection?.kind === 'help' ? null : { kind: 'help' };
       renderSelection();
     });
     ui.$('#mode-live').addEventListener('click', () => void switchMode('live'));
@@ -552,8 +660,12 @@ async function boot(): Promise<void> {
     if (tour) {
       void runTour(tourApi(), Number(params.get('pace')) || 1);
     } else if (entered) {
-      // Fly in now if the visitor already pressed "enter" (or skipped the intro).
-      map.flyIn(regionBounds(S.ref.region));
+      // Fly in now if the visitor already pressed "enter" (or skipped the intro),
+      // straight to the linked puskesmas or district when there is one.
+      const sel = S.selection;
+      if (sel?.kind === 'puskesmas') focusPuskesmas(sel.id);
+      else if (sel?.kind === 'district') map.flyToDistrict(sel.code);
+      else map.flyIn(regionBounds(S.ref.region));
     }
   } catch (e) {
     ui.setLoading(false);

@@ -70,7 +70,41 @@ export interface RegionInfo {
     last_day: string;
     fires: boolean;
     generated_at: string;
+    /** The forecast available on each morning (from the Atmosphere Data Store), when built. */
+    forecast?: { file: string; first_issue: string; last_issue: string; generated_at: string } | null;
   } | null;
+}
+
+export interface LeadCheck {
+  lead_day: number;
+  pairs: number;
+  missing: number;
+  hits: number;
+  misses: number;
+  false_alarms: number;
+  correct_negatives: number;
+  pod: number | null;
+  far: number | null;
+  accuracy: number | null;
+}
+
+export interface CheckOutput {
+  threshold_pm10_ugm3: number;
+  leads: LeadCheck[];
+  definitions: string;
+}
+
+/** replay-2026-10-forecast.json: [issue][lead day][cell] daily means in ug/m3. */
+export interface ForecastReplayFile {
+  generated_at: string;
+  region: string;
+  issue_dates: string[];
+  runs: string[];
+  lead_days: number;
+  pm10_ugm3: (number | null)[][][];
+  pm25_ugm3: (number | null)[][][];
+  check: CheckOutput;
+  source: string;
 }
 
 export interface RegionsIndex {
@@ -271,7 +305,7 @@ export interface BriefInput {
   outlook: OutlookInput;
   lang: Lang;
   region_name: string;
-  mode: 'live' | 'replay';
+  mode: 'live' | 'replay' | 'forecast';
   data_times?: { source: string; time: string }[];
   errors?: { source: string; error: string }[];
   top?: number;

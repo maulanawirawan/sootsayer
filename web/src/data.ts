@@ -8,6 +8,7 @@ import type {
   DistrictFeature,
   FireRow,
   FiresResponse,
+  ForecastReplayFile,
   Grid,
   OutlookInput,
   Profile,
@@ -197,6 +198,48 @@ export async function loadReplay(ref: Reference): Promise<Dataset> {
     replayFiresAvailable: Boolean(counted),
     fireCounts: counted ? rep.fires.district_counts : undefined,
     pointsFile: rep.fires.points_file ?? undefined,
+  };
+}
+
+const forecastCache = new Map<string, Promise<ForecastReplayFile>>();
+
+/** The forecast available on each replay morning (about 1 MB), loaded on first use. */
+export function loadForecastReplay(regionId: string, file: string): Promise<ForecastReplayFile> {
+  const key = `${regionId}/${file}`;
+  let hit = forecastCache.get(key);
+  if (!hit) {
+    hit = getJson<ForecastReplayFile>(`/data/${regionId}/${file}`, 'Copernicus CAMS (ADS)');
+    hit.catch(() => forecastCache.delete(key));
+    forecastCache.set(key, hit);
+  }
+  return hit;
+}
+
+/**
+ * The replay as a health office saw it on the morning of `start`: the days
+ * before `start` are hindsight (known by then, fires included), the window
+ * days are the CAMS forecast of that morning, and their fire counts are
+ * unknown, exactly as in live mode. Returns null when that morning has no run.
+ */
+export function asForecast(ds: Dataset, fc: ForecastReplayFile, start: string): Dataset | null {
+  const issue = fc.issue_dates.indexOf(start);
+  const d0 = ds.days.indexOf(start);
+  if (issue < 0 || d0 < 0) return null;
+  const replace = (cells: (number | null)[][], issued: (number | null)[][]) =>
+    cells.map((series, c) => {
+      const copy = series.slice();
+      for (let k = 0; k < fc.lead_days && d0 + k < copy.length; k++) copy[d0 + k] = issued[k]?.[c] ?? null;
+      return copy;
+    });
+  const known = new Set<string>();
+  for (const d of ds.fireDaysKnown) if (d < start) known.add(d);
+  return {
+    ...ds,
+    pm10: replace(ds.pm10, fc.pm10_ugm3[issue]),
+    pm25: replace(ds.pm25, fc.pm25_ugm3[issue]),
+    fireDaysKnown: known,
+    // Source name and run time only: the label also appears in briefings in both languages.
+    stamps: [...ds.stamps, { label: `Copernicus CAMS (ADS) ${fc.runs[issue]}`, when: fc.generated_at }],
   };
 }
 

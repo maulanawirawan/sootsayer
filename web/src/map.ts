@@ -49,12 +49,28 @@ export type Bounds = [[number, number], [number, number]];
 
 const GLOBE_VIEW = { center: [110.5, -1.2] as [number, number], zoom: 1.55, pitch: 0, bearing: 0 };
 
-/** Room left for the panels; phones get less padding so the region still fills the view. */
-function panelPadding(): { top: number; bottom: number; left: number; right: number } {
-  return window.innerWidth < 700
-    ? { top: 120, bottom: 230, left: 20, right: 20 }
-    : { top: 80, bottom: 170, left: 370, right: 70 };
+/** Height of the bottom panel plus its margin, measured, so the camera never hides things behind it. */
+function bottomSpace(): number {
+  const el = document.getElementById('bottom');
+  return el ? Math.round(window.innerHeight - el.getBoundingClientRect().top) + 16 : 190;
 }
+
+/** Width taken by a side panel when it is shown (0 when hidden). */
+function sideSpace(id: 'left' | 'right'): number {
+  const el = document.getElementById(id);
+  if (!el || el.classList.contains('hidden') || getComputedStyle(el).visibility === 'hidden') return 0;
+  const r = el.getBoundingClientRect();
+  return Math.round(id === 'left' ? r.right : window.innerWidth - r.left) + 16;
+}
+
+/** Room left for the panels; phones get less padding so the region still fills the view. */
+function panelPadding(withRight = false): { top: number; bottom: number; left: number; right: number } {
+  if (window.innerWidth < 700) return { top: 120, bottom: bottomSpace() + 40, left: 20, right: 20 };
+  return { top: 80, bottom: bottomSpace(), left: Math.max(40, sideSpace('left')), right: Math.max(70, withRight ? sideSpace('right') : 0) };
+}
+
+/** Slow start, slow finish: reads as a camera move rather than a jump. */
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 /** Toggleable layer groups (legend checkboxes). Day/night imagery is handled by setImageryMode. */
 export const LAYER_GROUPS = {
@@ -186,6 +202,8 @@ export interface SootMap {
   setGroupVisible(group: LayerGroup, visible: boolean): void;
   flyIn(bounds: Bounds, duration?: number): void;
   flyToDistrict(code: string): void;
+  focusPoint(lngLat: [number, number]): void;
+  selectPuskesmas(id: string | null): void;
   onDistrict(cb: (code: string) => void): void;
   onPuskesmas(cb: (id: string) => void): void;
 }
@@ -304,9 +322,15 @@ export async function createMap(
         ['interpolate', ['linear'], ['get', 'change'], -0.3, '#5aa9e6', 0, '#ddd6c6', 0.3, '#f6c453', 0.6, '#f08a24', 0.9, '#d6452b'],
         '#777777',
       ],
-      // Exaggerated on purpose so pillars read at a whole-island view:
-      // 7 km of height per expected respiratory visit per day.
-      'fill-extrusion-height': ['*', ['get', 'expected'], 7000],
+      // Exaggerated on purpose so pillars read at a whole-island view (7 km of
+      // height per expected respiratory visit per day), and lower when zoomed
+      // in so a close-up still shows the land around them.
+      'fill-extrusion-height': [
+        'interpolate', ['linear'], ['zoom'],
+        5, ['*', ['get', 'expected'], 7000],
+        8, ['*', ['get', 'expected'], 2400],
+        11, ['*', ['get', 'expected'], 700],
+      ],
       'fill-extrusion-base': 0,
       'fill-extrusion-opacity': 0.92,
     },
@@ -325,6 +349,21 @@ export async function createMap(
     source: 'districts',
     filter: ['==', ['get', 'code'], ''],
     paint: { 'line-color': '#ffffff', 'line-width': 2.4, 'line-opacity': 0.95 },
+  });
+  // Ring on the ground around the selected puskesmas pillar.
+  map.addLayer({
+    id: 'pillar-selected',
+    type: 'circle',
+    source: 'pillar-points',
+    filter: ['==', ['get', 'id'], ''],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 9, 8, 22, 11, 40],
+      'circle-color': 'rgba(0, 0, 0, 0)',
+      'circle-stroke-color': '#fff6d8',
+      'circle-stroke-width': 2.5,
+      'circle-stroke-opacity': 0.95,
+      'circle-pitch-alignment': 'map',
+    },
   });
 
   map.addLayer({
@@ -472,6 +511,9 @@ export async function createMap(
     selectDistrict(code) {
       map.setFilter('district-selected', ['==', ['get', 'code'], code ?? '']);
     },
+    selectPuskesmas(id) {
+      map.setFilter('pillar-selected', ['==', ['get', 'id'], id ?? '']);
+    },
     setGroupVisible(group, visible) {
       for (const id of LAYER_GROUPS[group]) {
         if (visible) hidden.delete(id);
@@ -482,12 +524,26 @@ export async function createMap(
     },
     flyIn(bounds, duration = 6500) {
       const cam = map.cameraForBounds(bounds, { padding: panelPadding(), bearing: -12, pitch: 42 });
-      if (cam) map.flyTo({ ...cam, bearing: -12, pitch: 42, duration, essential: true, curve: 1.6 });
+      if (cam) map.flyTo({ ...cam, bearing: -12, pitch: 42, duration, essential: true, curve: 1.5, easing: easeInOutCubic });
     },
     flyToDistrict(code) {
       const b = bboxOf(code);
-      const padding = window.innerWidth < 700 ? { top: 120, bottom: 300, left: 20, right: 20 } : { top: 90, bottom: 190, left: 370, right: 430 };
-      if (b) map.fitBounds(b, { padding, pitch: 45, duration: 2200, maxZoom: 8.5 });
+      if (!b) return;
+      // The detail panel opens on the right, so leave room for it.
+      const padding = window.innerWidth < 700 ? { top: 120, bottom: bottomSpace() + 140, left: 20, right: 20 } : { ...panelPadding(), right: Math.max(430, sideSpace('right')) };
+      const bearing = map.getBearing();
+      const cam = map.cameraForBounds(b, { padding, bearing, pitch: 48, maxZoom: 8.5 });
+      if (cam) map.flyTo({ ...cam, bearing, pitch: 48, duration: 2600, curve: 1.3, essential: true, easing: easeInOutCubic });
+    },
+    focusPoint(lngLat) {
+      // A drone-like glide: tilt in, keep the bearing, stop clear of the panels.
+      // From far out (the globe) it flies in an arc; nearby it eases.
+      const pad = window.innerWidth < 700 ? { top: 120, bottom: bottomSpace() + 140, left: 20, right: 20 } : { ...panelPadding(), right: Math.max(450, sideSpace('right')) };
+      const far = map.getZoom() < 5;
+      const bearing = far ? -12 : map.getBearing();
+      const cam = { center: lngLat, zoom: Math.max(map.getZoom(), 8.2), pitch: 58, bearing, padding: pad, easing: easeInOutCubic, essential: true };
+      if (far) map.flyTo({ ...cam, duration: 5200, curve: 1.5 });
+      else map.easeTo({ ...cam, duration: 2400 });
     },
     onDistrict(cb) {
       districtCbs.push(cb);

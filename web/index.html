@@ -25,13 +25,16 @@
         <button id="mode-live" type="button"></button>
         <button id="mode-replay" type="button"></button>
       </div>
+      <div id="views" class="modes views hidden" role="group"></div>
       <span id="hint" class="hint"></span>
+      <button id="help" type="button" class="lang help-btn">?</button>
       <button id="lang" type="button" class="lang"></button>
     </header>
 
     <aside id="left" class="panel">
       <section id="status"></section>
       <section id="priority"></section>
+      <section id="check"></section>
       <section id="pkm-list"></section>
     </aside>
 
@@ -41,7 +44,10 @@
       <div id="timeline"></div>
       <div id="legend"></div>
       <div id="attribution">
-        Smoke: Copernicus CAMS via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) ·
+        Smoke: Copernicus CAMS via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> and the
+        <a href="https://doi.org/10.24381/04a0b097" target="_blank" rel="noopener">Atmosphere Data Store</a> (forecast replay), CC BY 4.0.
+        Contains modified Copernicus Atmosphere Monitoring Service information 2026; neither the European Commission nor ECMWF
+        is responsible for any use that may be made of the Copernicus information or data it contains ·
         Fires: <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank" rel="noopener">NASA FIRMS</a> ·
         Day and night images: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> (VIIRS NOAA-20) ·
         Base: <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2016</a> by EOX (contains modified Copernicus Sentinel data 2016 &amp; 2017, CC BY 4.0) ·
