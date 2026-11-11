@@ -2,7 +2,8 @@
 
 Target: under 3 minutes, public YouTube, English voice or English subtitles.
 Record the real app (deployed URL or `npm run dev`) with OBS at 1080p.
-No third-party music or footage.
+Music only with a license that allows publishing on YouTube (keep the
+license text with the project). No third-party logos or footage on screen.
 
 **Before recording**
 - Tab 1: `/?region=kalimantan&mode=replay&date=2026-10-01&lang=en`.
@@ -37,9 +38,11 @@ No third-party music or footage.
   waiting room, CSV, tour, agents), with the design decisions and what was not
   built and why.
 - Steering: house rules that shaped the UI (ranges, limits, named failures).
-- Hooks, with real catches: the UI house-rules hook flagged English-only CSV
-  errors and an English label in the Indonesian briefing; the citation hook
-  flagged METHOD.md missing the new constants. All fixed.
+- Hooks: reviews with the house-rules and citation checklists found
+  English-only CSV errors, an English label in the Indonesian briefing, and
+  METHOD.md missing the new constants (all fixed). Before filming, save
+  `engine/src/method.rs` once in the editor to confirm the engine-check hook
+  really fires.
 - Property-based testing: seven proptest invariants, including "every
   briefing carries its limits and a range on every ranked line".
 - MCP: six tools, including `daily_brief`.

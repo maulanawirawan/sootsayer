@@ -166,9 +166,10 @@ out of the upload (the browser uses the prebuilt
 - **Hooks:** `engine-check-on-save` runs tests, rebuilds WASM and CLI, and
   checks parity whenever engine code is saved; `method-citation-check` keeps
   study numbers and citations consistent; `house-rules-ui-check` reviews UI
-  edits against the steering. During v2 the UI hook caught English-only CSV
-  errors and an English label inside the Indonesian briefing, and the citation
-  hook caught METHOD.md missing the new constants.
+  edits against the steering. During v2, reviews with the UI hook's checklist
+  found English-only CSV errors and an English label inside the Indonesian
+  briefing, and the citation checklist found METHOD.md missing the new
+  constants.
 - **Property-based testing:** proptest guards the engine's invariants,
   including that every briefing carries its limits, its disclaimer, and a range
   on every ranked line.

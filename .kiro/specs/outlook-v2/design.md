@@ -117,10 +117,15 @@ date. A map `error` listener now names the failing source.
 
 ## How Kiro shaped this spec
 
-- The UI house-rules hook flagged two violations while this was built:
-  English-only CSV error messages, and an English source label inside the
-  Indonesian briefing. Both were fixed before moving on.
-- The method-citation hook flagged that `docs/METHOD.md` lacked the new
-  constants (infiltration factors, CR box) and the fifth limit; METHOD.md was
-  rewritten to match `method.rs` value for value.
-- The engine-check hook (tests, WASM, CLI, parity) ran after each engine change.
+- Every UI edit was reviewed against the checklist of the
+  `house-rules-ui-check` hook. The review found two violations: English-only
+  CSV error messages, and an English source label inside the Indonesian
+  briefing. Both were fixed before moving on.
+- The checklist of the `method-citation-check` hook found that
+  `docs/METHOD.md` lacked the new constants (infiltration factors, CR box) and
+  the fifth limit; METHOD.md was rewritten to match `method.rs` value for value.
+- The command behind the `engine-check-on-save` hook (tests, WASM, CLI,
+  parity) was run after each engine change.
+- Not verified: whether Kiro fires these PostFileSave hooks for edits the
+  agent makes itself. During this build the checks were run explicitly; a save
+  from the editor is the case the hooks are written for.
