@@ -8,7 +8,96 @@ const STRINGS = {
     id: 'Satelit melihat api. Aplikasi udara melihat asap. Sootsayer memperkirakan puskesmas mana yang akan dipenuhi pasien sesak, lima hari ke depan.',
     en: 'Satellites see the fire. Air apps see the smoke. Sootsayer estimates which puskesmas will fill with breathless patients over the next five days.',
   },
-  enter: { id: 'Masuk ke Kalimantan', en: 'Fly to Kalimantan' },
+  enter: { id: 'Masuk ke {region}', en: 'Fly to {region}' },
+  region_kalimantan: { id: 'Kalimantan', en: 'Kalimantan' },
+  region_sumatra: { id: 'Sumatra', en: 'Sumatra' },
+  regionLabel: { id: 'Wilayah', en: 'Region' },
+  replayMissing: { id: 'Putar ulang belum tersedia untuk {region}; menampilkan mode langsung.', en: 'No replay for {region} yet; showing live mode.' },
+  briefButton: { id: 'Briefing untuk Dinkes', en: 'Briefing for the health office' },
+  briefTitle: { id: 'Briefing siap kirim', en: 'Ready-to-send briefing' },
+  briefNote: {
+    id: 'Teks dan angka ditulis oleh engine Rust yang sama dengan peta dan server MCP, bukan oleh model bahasa. Kirim apa adanya.',
+    en: 'Text and numbers come from the same Rust engine as the map and the MCP server, not from a language model. Send it as is.',
+  },
+  briefFailed: { id: 'Briefing tidak bisa dibuat', en: 'Could not build the briefing' },
+  briefCopy: { id: 'Salin', en: 'Copy' },
+  briefCopied: { id: 'Tersalin', en: 'Copied' },
+  briefWhatsApp: { id: 'Bagikan ke WhatsApp', en: 'Share on WhatsApp' },
+  briefDownload: { id: 'Unduh .txt', en: 'Download .txt' },
+  briefPrint: { id: 'Cetak', en: 'Print' },
+  pkmListTitle: { id: 'Daftar puskesmas', en: 'Puskesmas list' },
+  pkmSourceOsm: { id: 'Sumber: OpenStreetMap, {n} puskesmas.', en: 'Source: OpenStreetMap, {n} puskesmas.' },
+  pkmSourceUser: { id: 'Sumber: daftar Anda ({file}), {n} puskesmas, diimpor {date}.', en: 'Source: your list ({file}), {n} puskesmas, imported {date}.' },
+  csvExport: { id: 'Unduh CSV', en: 'Download CSV' },
+  csvImport: { id: 'Impor CSV', en: 'Import CSV' },
+  csvReset: { id: 'Kembali ke OSM', en: 'Back to OSM' },
+  csvHelp: {
+    id: 'Kolom: name, lat, lon, dan opsional baseline_visits_per_day. Pemisah koma atau titik koma. Unduh daftar OSM sebagai templat, perbaiki, lalu impor.',
+    en: 'Columns: name, lat, lon, and optional baseline_visits_per_day. Comma or semicolon separated. Download the OSM list as a template, fix it, then import.',
+  },
+  csvPrivacy: { id: 'File dibaca di browser ini saja dan tidak diunggah ke mana pun.', en: 'The file is read in this browser only and is not uploaded anywhere.' },
+  csvDone: { id: '{n} puskesmas diimpor.', en: '{n} puskesmas imported.' },
+  csvRejected: { id: '{n} baris ditolak:', en: '{n} rows rejected:' },
+  csvNothing: { id: 'Tidak ada baris yang bisa diimpor; daftar sebelumnya tetap dipakai.', en: 'No row could be imported; the previous list stays in use.' },
+  csvRowOutside: { id: 'baris {row}: titik di luar kabupaten/kota {region}', en: 'row {row}: point is outside the {region} districts' },
+  csvNoRows: { id: 'baris {row}: perlu baris judul dan minimal satu baris data', en: 'row {row}: a header and at least one data row are needed' },
+  csvMissingCols: { id: 'baris {row}: kolom tidak ada: {detail}', en: 'row {row}: missing column(s): {detail}' },
+  csvTooMany: { id: 'baris {row}: lebih dari {detail} baris; sisanya tidak dibaca', en: 'row {row}: more than {detail} rows; the rest was not read' },
+  csvBadName: { id: 'baris {row}: nama harus 1 sampai {detail} karakter', en: 'row {row}: name must be 1 to {detail} characters' },
+  csvBadCoord: { id: 'baris {row}: lat/lon harus derajat desimal (contoh -2.21 dan 113.92)', en: 'row {row}: lat/lon must be decimal degrees (for example -2.21 and 113.92)' },
+  csvBadBaseline: { id: 'baris {row}: baseline_visits_per_day harus angka 0 sampai 1000', en: 'row {row}: baseline_visits_per_day must be a number from 0 to 1000' },
+  osmEdit: { id: 'Perbaiki di OpenStreetMap', en: 'Fix in OpenStreetMap' },
+  pkmUser: { id: 'dari daftar Anda', en: 'from your list' },
+  crBox: { id: 'Pakai kotak Corsi–Rosenthal (uji EPA)', en: 'Use a Corsi–Rosenthal box (EPA test)' },
+  indoorTitle: { id: 'PM2.5 di dalam ruang, {date}', en: 'Indoor PM2.5, {date}' },
+  indoorOutdoor: { id: 'Di luar (CAMS, rata-rata kabupaten/kota)', en: 'Outdoors (CAMS, district mean)' },
+  indoorWithout: { id: 'Tanpa pembersih udara', en: 'Without air cleaners' },
+  indoorWith: { id: 'Dengan pembersih udara HEPA', en: 'With HEPA air cleaners' },
+  indoorNote: {
+    id: 'Rentang = faktor infiltrasi terukur di rumah saat asap kebakaran hutan (musim dingin sampai musim panas), bukan rentang 95%. Jendela atau jalusi terbuka bisa memasukkan lebih banyak asap: tutup ruangan dulu.',
+    en: 'Range = measured infiltration in homes during forest-fire smoke (winter to summer means), not a 95% range. Open windows or louvres can let in more smoke: close the room first.',
+  },
+  indoorUnknown: { id: 'PM2.5 luar ruang belum ada untuk hari ini.', en: 'No outdoor PM2.5 for this day yet.' },
+  layerNight: { id: 'Malam', en: 'Night' },
+  imageryNight: { id: 'Citra malam NASA {date} (VIIRS Day/Night Band)', en: 'NASA night image {date} (VIIRS Day/Night Band)' },
+  tourControls: { id: 'Spasi: jeda · →: lanjut · Esc: keluar', en: 'Space: pause · →: next · Esc: exit' },
+  tour1: {
+    id: 'Musim kabut 2026: Kemenkes mencatat 401.586 kasus ISPA terkait karhutla di 7 provinsi per 2 November.',
+    en: 'The 2026 haze season: Indonesia’s health ministry counted 401,586 respiratory infections linked to fires in 7 provinces by 2 November.',
+  },
+  tour2: {
+    id: 'Semua data terbuka: citra NASA hari itu, titik api NASA FIRMS, dan asap model Copernicus CAMS.',
+    en: 'All open data: NASA’s satellite image of the day, NASA FIRMS fire detections, and the Copernicus CAMS smoke model.',
+  },
+  tour3: {
+    id: 'Tiap kabupaten/kota diklasifikasi per hari: hari kabut, kabut berapi, dan berapa hari berturut-turut (Phung dkk. 2025).',
+    en: 'Every district-day is classified: haze day, fire-haze day, and how many days in a row (Phung et al. 2025).',
+  },
+  tour4: {
+    id: 'Prioritas posko dan rumah oksigen, diurutkan menurut perkiraan perubahan kunjungan, selalu dengan rentang 95%.',
+    en: 'Priority for posko and oxygen houses, ranked by the expected change in visits, always with the 95% range.',
+  },
+  tour5: {
+    id: 'Rincian kabupaten: perkiraan per hari, rentangnya, dan batas metode tepat di sebelah angka.',
+    en: 'District detail: the daily estimate, its range, and the method limits right next to the numbers.',
+  },
+  tour6: {
+    id: 'Puskesmas: kunjungan per hari, baseline yang bisa diganti dengan catatan sendiri, dan ruang udara bersih.',
+    en: 'Puskesmas: visits per day, a baseline you replace with your own records, and a clean-air room plan.',
+  },
+  tour7: {
+    id: 'Briefing siap kirim untuk Dinkes, ditulis oleh engine yang sama. Kiro Crew bisa mengirimnya tiap pagi lewat MCP.',
+    en: 'A ready-to-send briefing for the health office, written by the same engine. Kiro Crew can send it every morning over MCP.',
+  },
+  tour8: {
+    id: 'Sumatra: Riau, Jambi, dan Sumatera Selatan, dengan metode dan batas yang sama.',
+    en: 'Sumatra: Riau, Jambi, and South Sumatra, with the same method and the same limits.',
+  },
+  tour9: {
+    id: 'Mode langsung: prakiraan lima hari ke depan, diperbarui setiap hari dari sumber terbuka.',
+    en: 'Live mode: the next five days, refreshed every day from open sources.',
+  },
+  tour10: { id: 'Sootsayer: dari titik api ke antrean puskesmas.', en: 'Sootsayer: from the fire pixel to the clinic queue.' },
   modeLive: { id: 'Langsung', en: 'Live' },
   modeReplay: { id: 'Putar ulang Okt 2026', en: 'Replay Oct 2026' },
   loading: { id: 'Memuat data terbuka…', en: 'Loading open data…' },
@@ -102,7 +191,13 @@ const STRINGS = {
 
 export type Key = keyof typeof STRINGS;
 
-let current: Lang = (localStorage.getItem('sootsayer.lang') as Lang) || 'id';
+const urlLang = new URLSearchParams(location.search).get('lang');
+let current: Lang = urlLang === 'en' || urlLang === 'id' ? urlLang : (localStorage.getItem('sootsayer.lang') as Lang) || 'id';
+
+/** A key built at run time (for example `region_${id}`), when it exists. */
+export function hasKey(key: string): key is Key {
+  return Object.prototype.hasOwnProperty.call(STRINGS, key);
+}
 
 export function lang(): Lang {
   return current;

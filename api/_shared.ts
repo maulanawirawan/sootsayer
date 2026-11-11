@@ -1,6 +1,6 @@
 // Helpers shared by the edge functions. Files starting with "_" are not routes.
 
-export const KALIMANTAN_BBOX = { west: 108.6, south: -4.3, east: 119.2, north: 4.4 } as const;
+import { DEFAULT_REGION, REGIONS, isRegion, type RegionId } from './_grid.js';
 
 export function json(body: unknown, init: { status?: number; cache?: string } = {}): Response {
   return new Response(JSON.stringify(body), {
@@ -23,6 +23,17 @@ export function clampInt(raw: string | null, min: number, max: number, fallback:
   const n = raw === null ? NaN : Number.parseInt(raw, 10);
   if (!Number.isFinite(n)) return fallback;
   return Math.min(max, Math.max(min, n));
+}
+
+/**
+ * The `region` query parameter: one of the generated region ids, or the
+ * default when absent. Anything else is a 400, never a silent fallback.
+ */
+export function regionParam(url: URL): RegionId | Response {
+  const raw = url.searchParams.get('region');
+  if (raw === null) return DEFAULT_REGION;
+  if (isRegion(raw)) return raw;
+  return json({ error: `region must be one of ${Object.keys(REGIONS).join(', ')}`, source: 'request' }, { status: 400 });
 }
 
 /** Today's date in Indonesia's western time zone (UTC+7), as YYYY-MM-DD. */

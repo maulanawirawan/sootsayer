@@ -3,9 +3,12 @@
 
 import wasmUrl from './wasm/sootsayer_engine.wasm?url';
 import type {
+  BriefInput,
+  BriefOutput,
   CleanAirInput,
   CleanAirOutput,
   FireCountOutput,
+  LocateOutput,
   OutlookInput,
   OutlookOutput,
 } from './types';
@@ -17,9 +20,11 @@ interface EngineExports {
   ss_outlook(ptr: number, len: number): number;
   ss_clean_air(ptr: number, len: number): number;
   ss_fire_counts(ptr: number, len: number): number;
+  ss_locate(ptr: number, len: number): number;
+  ss_brief(ptr: number, len: number): number;
 }
 
-type Entry = 'ss_outlook' | 'ss_clean_air' | 'ss_fire_counts';
+type Entry = 'ss_outlook' | 'ss_clean_air' | 'ss_fire_counts' | 'ss_locate' | 'ss_brief';
 
 export class EngineError extends Error {}
 
@@ -57,9 +62,13 @@ function call<T>(entry: Entry, input: unknown): T {
   return envelope.result;
 }
 
+type Shapes = { code: string; multipolygon: number[][][][] }[];
+
 export const engine = {
   outlook: (input: OutlookInput) => call<OutlookOutput>('ss_outlook', input),
   cleanAir: (input: CleanAirInput) => call<CleanAirOutput>('ss_clean_air', input),
-  fireCounts: (input: { days: string[]; districts: { code: string; multipolygon: number[][][][] }[]; fires: [number, number, string][] }) =>
+  fireCounts: (input: { days: string[]; districts: Shapes; fires: [number, number, string][] }) =>
     call<FireCountOutput>('ss_fire_counts', input),
+  locate: (input: { districts: Shapes; points: [number, number][] }) => call<LocateOutput>('ss_locate', input),
+  brief: (input: BriefInput) => call<BriefOutput>('ss_brief', input),
 };

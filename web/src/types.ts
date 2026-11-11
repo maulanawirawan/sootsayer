@@ -50,6 +50,32 @@ export interface Puskesmas {
   lon: number;
   lat: number;
   district_code: string;
+  /** Usual respiratory visits per day from an imported list (user data). */
+  baseline?: number | null;
+}
+
+export interface RegionInfo {
+  id: string;
+  name: string;
+  bbox: [number, number, number, number];
+  provinces: string[];
+  districts: number;
+  kota: number;
+  puskesmas: number;
+  reference_generated_at: string;
+  replay: {
+    file: string;
+    window_start: string;
+    first_day: string;
+    last_day: string;
+    fires: boolean;
+    generated_at: string;
+  } | null;
+}
+
+export interface RegionsIndex {
+  default: string;
+  regions: RegionInfo[];
 }
 
 export interface ReferenceMeta {
@@ -64,6 +90,7 @@ export interface ReferenceMeta {
 export interface AirResponse {
   generated_at: string;
   source: string;
+  region?: string;
   today: string;
   days: string[];
   cells: number;
@@ -201,6 +228,13 @@ export interface CleanAirInput {
   ceiling_height_m: number;
   unit_cadr_m3h: number;
   target_ach?: number | null;
+  outdoor_pm25_ugm3?: number | null;
+}
+
+/** A low-high span that is not a confidence interval. */
+export interface Span {
+  low: number;
+  high: number;
 }
 
 export interface CleanAirOutput {
@@ -211,6 +245,13 @@ export interface CleanAirOutput {
   units: number;
   delivered_ach: number;
   source: string;
+  indoor: {
+    outdoor_pm25_ugm3: number;
+    without_cleaner_ugm3: Span;
+    with_cleaner_ugm3: Span;
+    source: string;
+  } | null;
+  presets: { name: string; cadr_m3h: number; source: string }[];
 }
 
 export interface FireCountOutput {
@@ -218,4 +259,31 @@ export interface FireCountOutput {
   counts: Record<string, number[]>;
   outside_districts: number;
   outside_days: number;
+}
+
+export interface LocateOutput {
+  located: ({ district_code: string; snapped: boolean } | null)[];
+}
+
+export type Lang = 'id' | 'en';
+
+export interface BriefInput {
+  outlook: OutlookInput;
+  lang: Lang;
+  region_name: string;
+  mode: 'live' | 'replay';
+  data_times?: { source: string; time: string }[];
+  errors?: { source: string; error: string }[];
+  top?: number;
+  link?: string | null;
+}
+
+export interface BriefOutput {
+  lang: Lang;
+  title: string;
+  text: string;
+  window_start: string;
+  window_end: string;
+  ranked: number;
+  complete: boolean;
 }

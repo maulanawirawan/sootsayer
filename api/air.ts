@@ -1,15 +1,15 @@
-// GET /api/air?past_days=14&forecast_days=5
-// Copernicus CAMS global forecast (via Open-Meteo) for the Kalimantan grid,
+// GET /api/air?region=kalimantan&past_days=14&forecast_days=5
+// Copernicus CAMS global forecast (via Open-Meteo) for one region's grid,
 // reduced from hourly values to daily means in UTC+7.
 //
 // Fair use of Open-Meteo's free tier (600 calls/min, 10,000/day):
-// - only cells over land plus one ring are requested (FETCH_CELLS); the rest
-//   of the grid is returned as null;
+// - one region per request, and only cells over land plus one ring
+//   (REGIONS[region].fetch); the rest of the grid is returned as null;
 // - the edge caches the response for 6 hours (CAMS runs twice a day);
 // - a warm function instance reuses its last result for 30 minutes.
 
-import { CELLS, FETCH_CELLS } from './_grid.js';
-import { clampInt, fetchWithTimeout, json, sourceError, todayWib } from './_shared.js';
+import { REGIONS } from './_grid.js';
+import { clampInt, fetchWithTimeout, json, regionParam, sourceError, todayWib } from './_shared.js';
 
 const ENDPOINT = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const CHUNK = 100;
@@ -38,7 +38,7 @@ function dailyMeans(time: string[], values: (number | null)[], days: string[]): 
   });
 }
 
-async function fetchChunk(cells: (readonly [number, number])[], past: number, forecast: number): Promise<Hourly[]> {
+async function fetchChunk(cells: [number, number][], past: number, forecast: number): Promise<Hourly[]> {
   const q = new URLSearchParams({
     latitude: cells.map((c) => c[1].toFixed(1)).join(','),
     longitude: cells.map((c) => c[0].toFixed(1)).join(','),
@@ -62,15 +62,21 @@ async function fetchChunk(cells: (readonly [number, number])[], past: number, fo
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
+  const region = regionParam(url);
+  if (region instanceof Response) return region;
+  const grid = REGIONS[region];
   const past = clampInt(url.searchParams.get('past_days'), 0, 31, 14);
   const forecast = clampInt(url.searchParams.get('forecast_days'), 1, 7, 5);
   const cache = 'public, s-maxage=21600, stale-while-revalidate=21600';
-  const key = `${past}/${forecast}/${todayWib()}`;
+  const key = `${region}/${past}/${forecast}/${todayWib()}`;
   const hit = memo.get(key);
   if (hit && Date.now() - hit.at < MEMO_MS) return json(hit.body, { cache });
   try {
-    const wanted = FETCH_CELLS.map((i) => CELLS[i]);
-    const chunks: (readonly [number, number])[][] = [];
+    const nx = grid.lons.length;
+    const nCells = nx * grid.lats.length;
+    const cell = (i: number): [number, number] => [grid.lons[i % nx], grid.lats[Math.floor(i / nx)]];
+    const wanted = grid.fetch.map(cell);
+    const chunks: [number, number][][] = [];
     for (let i = 0; i < wanted.length; i += CHUNK) chunks.push(wanted.slice(i, i + CHUNK));
     const hourly: Hourly[] = [];
     // Two requests at a time keeps the function quick without bursting the API.
@@ -80,21 +86,22 @@ export async function GET(request: Request): Promise<Response> {
     }
     const days = Array.from(new Set(hourly[0].time.map((t) => t.slice(0, 10))));
     const empty = () => days.map(() => null);
-    const pm25: (number | null)[][] = CELLS.map(empty);
-    const pm10: (number | null)[][] = CELLS.map(empty);
-    FETCH_CELLS.forEach((cell, k) => {
-      pm25[cell] = dailyMeans(hourly[k].time, hourly[k].pm2_5, days);
-      pm10[cell] = dailyMeans(hourly[k].time, hourly[k].pm10, days);
+    const pm25: (number | null)[][] = Array.from({ length: nCells }, empty);
+    const pm10: (number | null)[][] = Array.from({ length: nCells }, empty);
+    grid.fetch.forEach((c, k) => {
+      pm25[c] = dailyMeans(hourly[k].time, hourly[k].pm2_5, days);
+      pm10[c] = dailyMeans(hourly[k].time, hourly[k].pm10, days);
     });
     const body = {
       generated_at: new Date().toISOString(),
       source: 'Copernicus CAMS global atmospheric composition forecast, via Open-Meteo (CC BY 4.0)',
       model: 'cams_global',
+      region,
       timezone: 'Asia/Jakarta (UTC+7)',
       today: todayWib(),
       days,
-      cells: CELLS.length,
-      requested_cells: FETCH_CELLS.length,
+      cells: nCells,
+      requested_cells: grid.fetch.length,
       pm25_ugm3: pm25,
       pm10_ugm3: pm10,
     };

@@ -6,7 +6,7 @@
     <title>Sootsayer · haze to puskesmas outlook</title>
     <meta
       name="description"
-      content="Sootsayer foretells where wildfire smoke will settle over Kalimantan in the next five days and how many extra respiratory visits each puskesmas should expect, on a real 3D globe built from open data."
+      content="Sootsayer foretells where wildfire smoke will settle over Kalimantan and Sumatra in the next five days and how many extra respiratory visits each puskesmas should expect, on a real 3D globe built from open data."
     />
     <meta property="og:title" content="Sootsayer · peramal jelaga untuk puskesmas" />
     <meta property="og:description" content="Satellite fires + Copernicus smoke forecasts + a puskesmas study + a Rust engine in your browser." />
@@ -20,6 +20,7 @@
         <span class="logo">Sootsayer</span>
         <span id="brand-tagline" class="tagline"></span>
       </div>
+      <div id="regions" class="modes regions" role="group"></div>
       <div class="modes" role="group">
         <button id="mode-live" type="button"></button>
         <button id="mode-replay" type="button"></button>
@@ -31,6 +32,7 @@
     <aside id="left" class="panel">
       <section id="status"></section>
       <section id="priority"></section>
+      <section id="pkm-list"></section>
     </aside>
 
     <aside id="right" class="panel hidden"></aside>
@@ -41,7 +43,7 @@
       <div id="attribution">
         Smoke: Copernicus CAMS via <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo</a> (CC BY 4.0) ·
         Fires: <a href="https://firms.modaps.eosdis.nasa.gov" target="_blank" rel="noopener">NASA FIRMS</a> ·
-        Day image: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> ·
+        Day and night images: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> (VIIRS NOAA-20) ·
         Base: <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2016</a> by EOX (contains modified Copernicus Sentinel data 2016 &amp; 2017, CC BY 4.0) ·
         Terrain: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Terrain Tiles</a> ·
         Labels: <a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a> © <a href="https://www.openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> ·

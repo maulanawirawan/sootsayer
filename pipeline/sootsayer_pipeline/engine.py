@@ -12,7 +12,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from . import REPO, WEB_DATA
+from . import REPO, region
 
 ENGINE_DIR = REPO / "engine"
 BIN_NAME = "sootsayer.exe" if os.name == "nt" else "sootsayer"
@@ -44,9 +44,10 @@ def run(command: str, payload: dict) -> Any:
     return envelope["result"]
 
 
-def load_reference() -> tuple[list[dict], list[dict]]:
-    districts = json.loads((WEB_DATA / "districts.geojson").read_text(encoding="utf-8"))["features"]
-    puskesmas = json.loads((WEB_DATA / "puskesmas.json").read_text(encoding="utf-8"))
+def load_reference(region_id: str) -> tuple[list[dict], list[dict]]:
+    folder = region(region_id).data_dir
+    districts = json.loads((folder / "districts.geojson").read_text(encoding="utf-8"))["features"]
+    puskesmas = json.loads((folder / "puskesmas.json").read_text(encoding="utf-8"))
     return districts, puskesmas
 
 

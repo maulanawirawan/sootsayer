@@ -43,14 +43,14 @@ export function setLoading(on: boolean): void {
   el.classList.toggle('hidden', !on || introVisible);
 }
 
-export function showIntro(onEnter: () => void): void {
+export function showIntro(region: string, onEnter: () => void): void {
   const el = $('#intro');
   el.innerHTML = `
     <div class="intro-card">
       <h1>Sootsayer</h1>
       <p class="tagline">${esc(t('tagline'))}</p>
       <p>${esc(t('intro'))}</p>
-      <button id="enter" class="primary">${esc(t('enter'))}</button>
+      <button id="enter" class="primary">${esc(t('enter', { region }))}</button>
     </div>`;
   el.classList.remove('hidden');
   $('#enter').addEventListener('click', () => {
@@ -59,11 +59,11 @@ export function showIntro(onEnter: () => void): void {
   });
 }
 
-export function renderStatus(ds: Dataset, meta: ReferenceMeta, imageryNote: string): void {
+export function renderStatus(ds: Dataset, meta: ReferenceMeta, imageryNote: string, notice: string | null = null): void {
   const errors = ds.errors
     .map((e) => `<div class="banner error">${esc(t('sourceFailed', { source: e.source }))}<br><span class="muted">${esc(e.error)}</span></div>`)
     .join('');
-  const notes: string[] = [];
+  const notes: string[] = notice ? [notice] : [];
   if (ds.mode === 'replay') {
     notes.push(t('replayLabel'));
     if (!ds.replayFiresAvailable) notes.push(t('replayNoFires'));
@@ -74,10 +74,12 @@ export function renderStatus(ds: Dataset, meta: ReferenceMeta, imageryNote: stri
     .map((s) => `<li>${esc(s.label)} · ${esc(t('updated'))} ${esc(new Date(s.when).toLocaleString())}</li>`)
     .join('');
   const refSources = meta.sources.map((s) => `<li>${esc(s.layer)}: ${esc(s.name)} (${esc(s.license)})</li>`).join('');
+  // Re-rendering must not close a list the user opened.
+  const open = $('#status').querySelector('details')?.open ? ' open' : '';
   $('#status').innerHTML = `
     ${errors}
     ${notes.map((n) => `<div class="banner note">${esc(n)}</div>`).join('')}
-    <details>
+    <details${open}>
       <summary>${esc(t('sources'))}</summary>
       <ul class="sources">${stamps}<li>${esc(imageryNote)}</li>${refSources}</ul>
     </details>`;
@@ -85,7 +87,7 @@ export function renderStatus(ds: Dataset, meta: ReferenceMeta, imageryNote: stri
 
 // ---------- priority ----------
 
-export function renderPriority(out: OutlookOutput, onPick: (code: string) => void): void {
+export function renderPriority(out: OutlookOutput, onPick: (code: string) => void, onBrief: () => void): void {
   const windowDays = out.days.filter((d) => d >= out.window_start).length;
   const ranked = out.priority.filter((p) => p.complete && p.mean_change && p.haze_days > 0).slice(0, 10);
   const incomplete = out.priority.filter((p) => !p.complete);
@@ -111,10 +113,89 @@ export function renderPriority(out: OutlookOutput, onPick: (code: string) => voi
     <p class="muted small">${esc(t('priorityHint', { n: windowDays, date: fmtDate(out.window_start) }))}</p>
     ${ranked.length ? `<ol class="priority">${rows}</ol>` : `<p class="muted">${esc(t('noHaze'))}</p>`}
     ${inc}
+    <button id="brief-open" class="secondary">✉ ${esc(t('briefButton'))}</button>
     <p class="muted small">${esc(t('osmGap'))}</p>`;
   $('#priority')
     .querySelectorAll<HTMLButtonElement>('button.row')
     .forEach((b) => b.addEventListener('click', () => onPick(b.dataset.code as string)));
+  $('#brief-open').addEventListener('click', onBrief);
+}
+
+// ---------- puskesmas list (OSM or the user's own CSV) ----------
+
+export function renderPuskesmasList(
+  source: { kind: 'osm'; n: number } | { kind: 'user'; n: number; file: string; date: string },
+  message: { ok: string | null; problems: string[] },
+  on: { exportCsv: () => void; importCsv: (file: File) => void; reset: () => void },
+): void {
+  const el = $('#pkm-list');
+  const wasOpen = el.querySelector<HTMLDetailsElement>('details.pkm-list')?.open ?? false;
+  const label =
+    source.kind === 'osm'
+      ? t('pkmSourceOsm', { n: source.n })
+      : t('pkmSourceUser', { n: source.n, file: source.file, date: fmtDate(source.date, { day: 'numeric', month: 'short', year: 'numeric' }) });
+  const problems = message.problems.length
+    ? `<details class="problems" open><summary>${esc(t('csvRejected', { n: message.problems.length }))}</summary><ul>${message.problems
+        .slice(0, 30)
+        .map((p) => `<li>${esc(p)}</li>`)
+        .join('')}${message.problems.length > 30 ? '<li>…</li>' : ''}</ul></details>`
+    : '';
+  el.innerHTML = `
+    <details class="pkm-list">
+      <summary>${esc(t('pkmListTitle'))} · <span class="muted">${esc(label)}</span></summary>
+      <p class="muted small">${esc(t('csvHelp'))}</p>
+      <div class="buttons">
+        <button id="csv-export" class="secondary">⬇ ${esc(t('csvExport'))}</button>
+        <label class="secondary file">⬆ ${esc(t('csvImport'))}<input id="csv-import" type="file" accept=".csv,.txt,text/csv"></label>
+        ${source.kind === 'user' ? `<button id="csv-reset" class="secondary">${esc(t('csvReset'))}</button>` : ''}
+      </div>
+      <p class="muted small">${esc(t('csvPrivacy'))}</p>
+      ${message.ok ? `<div class="banner note">${esc(message.ok)}</div>` : ''}
+      ${problems}
+    </details>`;
+  if (wasOpen || message.ok || message.problems.length) el.querySelector('details')?.setAttribute('open', '');
+  $('#csv-export').addEventListener('click', on.exportCsv);
+  el.querySelector('#csv-reset')?.addEventListener('click', on.reset);
+  const input = $<HTMLInputElement>('#csv-import');
+  input.addEventListener('change', () => {
+    const f = input.files?.[0];
+    if (f) on.importCsv(f);
+  });
+}
+
+// ---------- briefing ----------
+
+export function renderBrief(text: string, title: string, onClose: () => void): void {
+  const el = openPanel(
+    `<h2>${esc(t('briefTitle'))}</h2>
+     <p class="muted small">${esc(t('briefNote'))}</p>
+     <div class="buttons">
+       <button id="brief-copy" class="secondary">${esc(t('briefCopy'))}</button>
+       <a class="secondary button" href="https://wa.me/?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">${esc(t('briefWhatsApp'))}</a>
+       <button id="brief-download" class="secondary">${esc(t('briefDownload'))}</button>
+       <button id="brief-print" class="secondary">${esc(t('briefPrint'))}</button>
+     </div>
+     <pre class="brief" id="brief-text">${esc(text)}</pre>`,
+    onClose,
+  );
+  el.classList.add('brief-panel');
+  const copy = el.querySelector<HTMLButtonElement>('#brief-copy');
+  copy?.addEventListener('click', () => {
+    void navigator.clipboard.writeText(text).then(() => {
+      copy.textContent = t('briefCopied');
+    });
+  });
+  el.querySelector('#brief-download')?.addEventListener('click', () => {
+    const url = URL.createObjectURL(new Blob([text + '\n'], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${title.replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase()}.txt`;
+    document.body.append(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  });
+  el.querySelector('#brief-print')?.addEventListener('click', () => window.print());
 }
 
 // ---------- timeline ----------
@@ -146,7 +227,7 @@ export function renderTimeline(
 
 // ---------- legend ----------
 
-export type LayerToggles = Record<'imagery' | 'smoke' | 'fires' | 'pillars' | 'districts', boolean>;
+export type LayerToggles = Record<'imagery' | 'night' | 'smoke' | 'fires' | 'pillars' | 'districts', boolean>;
 
 export function renderLegend(
   imageryNote: string,
@@ -171,10 +252,10 @@ export function renderLegend(
       <div><span class="sw fire"></span>${esc(t('legendFires'))}: ${firesShown}</div>
       <div><span class="sw pillar"></span>${esc(t('legendPillars'))}</div>
       <div class="muted small">${esc(imageryNote)}</div>
-      <div class="toggles">${toggle('imagery', t('layerImagery'))}${toggle('smoke', t('layerSmoke'))}${toggle('fires', t('layerFires'))}${toggle(
-        'pillars',
-        t('layerPillars'),
-      )}${toggle('districts', t('layerDistricts'))}</div>
+      <div class="toggles">${toggle('imagery', t('layerImagery'))}${toggle('night', t('layerNight'))}${toggle('smoke', t('layerSmoke'))}${toggle(
+        'fires',
+        t('layerFires'),
+      )}${toggle('pillars', t('layerPillars'))}${toggle('districts', t('layerDistricts'))}</div>
     </div>`;
   el.querySelectorAll<HTMLInputElement>('input[data-layer]').forEach((i) =>
     i.addEventListener('change', () => onToggle(i.dataset.layer as keyof LayerToggles, i.checked)),
@@ -304,6 +385,11 @@ export function renderDistrictPanel(
   el.querySelector<HTMLSelectElement>('#profile')?.addEventListener('change', (e) => onProfile((e.target as HTMLSelectElement).value as Profile));
 }
 
+function osmEditUrl(id: string): string | null {
+  const m = /^osm:(node|way|relation)\/(\d+)$/.exec(id);
+  return m ? `https://www.openstreetmap.org/edit?${m[1]}=${m[2]}` : null;
+}
+
 export function renderPuskesmasPanel(
   out: OutlookOutput,
   p: PuskesmasOutlook,
@@ -315,9 +401,13 @@ export function renderPuskesmasPanel(
 ): void {
   const day = p.days.find((x) => x.date === selected);
   const windowDays = p.days.filter((x) => x.in_window).length;
+  const edit = osmEditUrl(p.id);
+  const origin = edit
+    ? `<a href="${esc(edit)}" target="_blank" rel="noopener">${esc(t('osmEdit'))}</a>`
+    : `<span>${esc(t('pkmUser'))}</span>`;
   const el = openPanel(
     `<h2>${esc(p.name)}</h2>
-     <p class="muted">${esc(d.name)} · ${esc(t(`profile_${d.profile}` as Key))}</p>
+     <p class="muted">${esc(d.name)} · ${esc(t(`profile_${d.profile}` as Key))} · ${origin}</p>
      ${day?.expected ? `<div class="kpi"><div class="label">${esc(t('expected'))}, ${esc(fmtDate(selected))}</div><div class="value">${rangeText(day.expected, 'visits')}</div></div>` : `<div class="kpi"><div class="value">${esc(t('status_unknown'))}</div></div>`}
      <div class="kpi"><div class="label">${esc(t('extraWindow', { n: windowDays }))}</div><div class="value">${rangeText(p.window_extra, 'visits')}</div></div>
      ${rangeChart(p.days.map((x) => x.date), p.days.map((x) => x.expected), { unit: 'visits', windowStart: out.window_start, selected, baseline: p.baseline_visits_per_day })}
@@ -331,8 +421,9 @@ export function renderPuskesmasPanel(
        <label class="field">${esc(t('height'))}<input id="ca-height" type="number" min="2" step="0.1" value="3"></label>
        <label class="field">${esc(t('unitCadr'))}<input id="ca-cadr" type="number" min="10" step="10" value="300"></label>
      </div>
-     <p class="muted small">${esc(t('unitCadrHint'))}</p>
+     <p class="muted small">${esc(t('unitCadrHint'))} <button id="ca-crbox" class="link"></button></p>
      <div id="ca-out" class="kpi"></div>
+     <div id="ca-indoor"></div>
      ${limitsBlock(out)}`,
     onClose,
   );
@@ -341,19 +432,45 @@ export function renderPuskesmasPanel(
     const v = Number(input.value);
     onBaseline(input.value.trim() === '' || !Number.isFinite(v) || v < 0 ? null : v);
   });
+  const cadrInput = el.querySelector('#ca-cadr') as HTMLInputElement;
+  const crButton = el.querySelector('#ca-crbox') as HTMLButtonElement;
+  let crBox: CleanAirOutput['presets'][number] | undefined;
   const update = () => {
     const area = Number((el.querySelector('#ca-area') as HTMLInputElement).value);
     const height = Number((el.querySelector('#ca-height') as HTMLInputElement).value);
-    const cadr = Number((el.querySelector('#ca-cadr') as HTMLInputElement).value);
+    const cadr = Number(cadrInput.value);
     const res = cleanAir(area, height, cadr);
     const box = el.querySelector('#ca-out') as HTMLElement;
-    box.innerHTML =
-      typeof res === 'string'
-        ? `<span class="muted">${esc(res)}</span>`
-        : `<div class="value">${res.units} ×</div><div class="small">${esc(
-            t('cleanAirResult', { units: res.units, ach: fmtNumber(res.target_ach, 0), cadr: fmtNumber(res.cadr_needed_m3h, 0) }),
-          )}</div><div class="muted small">${esc(res.source)}</div>`;
+    const indoorBox = el.querySelector('#ca-indoor') as HTMLElement;
+    if (typeof res === 'string') {
+      box.innerHTML = `<span class="muted">${esc(res)}</span>`;
+      indoorBox.innerHTML = '';
+      return;
+    }
+    crBox = res.presets[0];
+    crButton.textContent = crBox ? `${t('crBox')}: ${fmtNumber(crBox.cadr_m3h, 0)} m³/h` : '';
+    const usingCr = crBox !== undefined && Math.abs(cadr - crBox.cadr_m3h) < 0.5;
+    box.innerHTML = `<div class="value">${res.units} ×</div><div class="small">${esc(
+      t('cleanAirResult', { units: res.units, ach: fmtNumber(res.target_ach, 0), cadr: fmtNumber(res.cadr_needed_m3h, 0) }),
+    )}</div><div class="muted small">${esc(res.source)}</div>${usingCr && crBox ? `<div class="muted small">${esc(crBox.source)}</div>` : ''}`;
+    const i = res.indoor;
+    const span = (s: { low: number; high: number }) => `${fmtNumber(s.low, 0)} … ${fmtNumber(s.high, 0)} µg/m³`;
+    indoorBox.innerHTML = i
+      ? `<h3>${esc(t('indoorTitle', { date: fmtDate(selected) }))}</h3>
+         <table class="days indoor"><tbody>
+           <tr><td>${esc(t('indoorOutdoor'))}</td><td>${fmtNumber(i.outdoor_pm25_ugm3, 0)} µg/m³</td></tr>
+           <tr><td>${esc(t('indoorWithout'))}</td><td>${span(i.without_cleaner_ugm3)}</td></tr>
+           <tr><td>${esc(t('indoorWith'))}</td><td>${span(i.with_cleaner_ugm3)}</td></tr>
+         </tbody></table>
+         <p class="muted small">${esc(t('indoorNote'))}</p>
+         <p class="muted small">${esc(i.source)}</p>`
+      : `<p class="muted small">${esc(t('indoorUnknown'))}</p>`;
   };
+  crButton.addEventListener('click', () => {
+    if (!crBox) return;
+    cadrInput.value = String(crBox.cadr_m3h);
+    update();
+  });
   el.querySelectorAll('#ca-area, #ca-height, #ca-cadr').forEach((i) => i.addEventListener('input', update));
   update();
 }

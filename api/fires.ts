@@ -1,15 +1,18 @@
-// GET /api/fires?range=7d   (24h | 48h | 7d)
+// GET /api/fires?region=kalimantan&range=7d   (24h | 48h | 7d)
 // NASA FIRMS VIIRS NOAA-20 near-real-time detections for Southeast Asia,
-// filtered to Kalimantan. FIRMS does not send CORS headers, so the browser
+// filtered to one region. FIRMS does not send CORS headers, so the browser
 // cannot read it directly; this function relays and trims it (2 MB -> ~100 kB).
 
-import { KALIMANTAN_BBOX, fetchWithTimeout, json, sourceError, utcToWibDate } from './_shared.js';
+import { REGIONS } from './_grid.js';
+import { fetchWithTimeout, json, regionParam, sourceError, utcToWibDate } from './_shared.js';
 
 const SOURCE = 'NASA FIRMS';
 const RANGES = new Set(['24h', '48h', '7d']);
 
 export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
+  const region = regionParam(url);
+  if (region instanceof Response) return region;
   const range = url.searchParams.get('range') ?? '7d';
   if (!RANGES.has(range)) return json({ error: 'range must be 24h, 48h or 7d', source: SOURCE }, { status: 400 });
   const csvUrl = `https://firms.modaps.eosdis.nasa.gov/data/active_fire/noaa-20-viirs-c2/csv/J1_VIIRS_C2_SouthEast_Asia_${range}.csv`;
@@ -28,7 +31,7 @@ export async function GET(request: Request): Promise<Response> {
     const [iLat, iLon, iDate, iTime, iFrp, iConf, iDn] = [
       col('latitude'), col('longitude'), col('acq_date'), col('acq_time'), col('frp'), col('confidence'), col('daynight'),
     ];
-    const { west, south, east, north } = KALIMANTAN_BBOX;
+    const { west, south, east, north } = REGIONS[region].bbox;
     const rows: (string | number | null)[][] = [];
     let minDate = '9999-99-99';
     let maxDate = '0000-00-00';
@@ -56,6 +59,7 @@ export async function GET(request: Request): Promise<Response> {
       {
         generated_at: new Date().toISOString(),
         source: 'NASA FIRMS, VIIRS NOAA-20 near real-time (C2), Southeast Asia',
+        region,
         range,
         columns: ['lon', 'lat', 'date_wib', 'time_utc', 'frp_mw', 'confidence', 'daynight'],
         dates: rows.length ? [minDate, maxDate] : [],

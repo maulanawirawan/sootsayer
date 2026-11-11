@@ -2,6 +2,7 @@
 // open satellite imagery, and Sootsayer's data layers.
 
 import {
+  addProtocol,
   GlobeControl,
   Map as MlMap,
   NavigationControl,
@@ -19,17 +20,44 @@ import type { DayStatus, DistrictCollection, FireRow } from './types';
 
 setWorkerUrl(workerUrl);
 
-const GLOBE_VIEW = { center: [114.5, -0.8] as [number, number], zoom: 1.55, pitch: 0, bearing: 0 };
-/** Indonesian Kalimantan, framed by fitBounds so it fills the space between the panels. */
-const KALIMANTAN_BOUNDS: [[number, number], [number, number]] = [
-  [108.8, -4.2],
-  [119.0, 4.3],
-];
-const PANEL_PADDING = { top: 80, bottom: 170, left: 370, right: 70 };
+/** A JPEG with its end marker (FF D9) in the last 32 bytes, or any PNG; a JPEG without one was cut off. */
+function completeImage(b: Uint8Array): boolean {
+  if (b.length > 4 && b[0] === 0xff && b[1] === 0xd8) {
+    for (let i = b.length - 2; i >= Math.max(2, b.length - 32); i--) if (b[i] === 0xff && b[i + 1] === 0xd9) return true;
+    return false;
+  }
+  return b.length > 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47;
+}
 
-/** Toggleable layer groups (legend checkboxes). */
+// The EOX tile server now and then answers HTTP 200 with a JPEG cut short
+// (seen: tile 3/2/5, 14,873 bytes, no end marker, about 1 load in 15), which
+// Chrome reports as "The source image could not be decoded". Tiles requested
+// as retry://host/path are fetched over https, checked, and fetched once more,
+// bypassing the cache, when the body is incomplete.
+addProtocol('retry', async (params, abort) => {
+  const url = params.url.replace(/^retry:\/\//, 'https://');
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const res = await fetch(url, { signal: abort.signal, cache: attempt ? 'reload' : 'default' });
+    if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+    const data = await res.arrayBuffer();
+    if (completeImage(new Uint8Array(data))) return { data };
+  }
+  throw new Error(`incomplete image twice from ${new URL(url).host}`);
+});
+
+export type Bounds = [[number, number], [number, number]];
+
+const GLOBE_VIEW = { center: [110.5, -1.2] as [number, number], zoom: 1.55, pitch: 0, bearing: 0 };
+
+/** Room left for the panels; phones get less padding so the region still fills the view. */
+function panelPadding(): { top: number; bottom: number; left: number; right: number } {
+  return window.innerWidth < 700
+    ? { top: 120, bottom: 230, left: 20, right: 20 }
+    : { top: 80, bottom: 170, left: 370, right: 70 };
+}
+
+/** Toggleable layer groups (legend checkboxes). Day/night imagery is handled by setImageryMode. */
 export const LAYER_GROUPS = {
-  imagery: ['gibs'],
   smoke: ['smoke'],
   fires: ['fires-glow', 'fires'],
   pillars: ['pillars', 'pillars-hit'],
@@ -39,6 +67,11 @@ export type LayerGroup = keyof typeof LAYER_GROUPS;
 
 export function gibsTiles(date: string): string {
   return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_NOAA20_CorrectedReflectance_TrueColor/default/${date}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`;
+}
+
+/** VIIRS Day/Night Band of the same night: city lights and fires glowing in the dark. */
+export function gibsNightTiles(date: string): string {
+  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/VIIRS_NOAA20_DayNightBand_At_Sensor_Radiance/default/${date}/GoogleMapsCompatible_Level8/{z}/{y}/{x}.png`;
 }
 
 const CHANGE_RAMP = [
@@ -61,7 +94,7 @@ function style(imageryDate: string): StyleSpecification {
     sources: {
       s2: {
         type: 'raster',
-        tiles: ['https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],
+        tiles: ['retry://tiles.maps.eox.at/wmts/1.0.0/s2cloudless_3857/default/g/{z}/{y}/{x}.jpg'],
         tileSize: 256,
         maxzoom: 14,
         attribution:
@@ -74,6 +107,14 @@ function style(imageryDate: string): StyleSpecification {
         maxzoom: 9,
         attribution:
           'Day imagery: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> (VIIRS NOAA-20 true colour)',
+      },
+      'gibs-night': {
+        type: 'raster',
+        tiles: [gibsNightTiles(imageryDate)],
+        tileSize: 256,
+        maxzoom: 8,
+        attribution:
+          'Night imagery: <a href="https://earthdata.nasa.gov/gibs" target="_blank" rel="noopener">NASA GIBS</a> (VIIRS NOAA-20 Day/Night Band)',
       },
       terrain: {
         type: 'raster-dem',
@@ -109,6 +150,17 @@ function style(imageryDate: string): StyleSpecification {
         paint: { 'raster-opacity': ['interpolate', ['linear'], ['zoom'], 6.5, 0.85, 9.5, 0] },
       },
       {
+        id: 'gibs-night',
+        type: 'raster',
+        source: 'gibs-night',
+        layout: { visibility: 'none' },
+        paint: {
+          'raster-opacity': ['interpolate', ['linear'], ['zoom'], 7, 1, 9.5, 0.2],
+          'raster-contrast': 0.25,
+          'raster-saturation': -1,
+        },
+      },
+      {
         id: 'hillshade',
         type: 'hillshade',
         source: 'hillshade',
@@ -118,16 +170,21 @@ function style(imageryDate: string): StyleSpecification {
   };
 }
 
+type Corners = [[number, number], [number, number], [number, number], [number, number]];
+
 export interface SootMap {
   map: MlMap;
   setImagery(date: string): void;
-  setSmoke(canvas: HTMLCanvasElement, coordinates: [[number, number], [number, number], [number, number], [number, number]]): void;
+  setImageryMode(visible: boolean, night: boolean): void;
+  /** `key` identifies the frame; the same key twice does not reload the image. */
+  setSmoke(key: string, draw: () => HTMLCanvasElement, coordinates: Corners): void;
   setFires(rows: FireRow[], date: string): number;
+  setDistricts(fc: DistrictCollection): void;
   setDistrictDay(states: Map<string, { change: number | null; status: DayStatus }>): void;
   setPillars(fc: GeoJSON.FeatureCollection): void;
   selectDistrict(code: string | null): void;
   setGroupVisible(group: LayerGroup, visible: boolean): void;
-  flyIn(): void;
+  flyIn(bounds: Bounds, duration?: number): void;
   flyToDistrict(code: string): void;
   onDistrict(cb: (code: string) => void): void;
   onPuskesmas(cb: (id: string) => void): void;
@@ -135,13 +192,6 @@ export interface SootMap {
 
 function emptyFc(): GeoJSON.FeatureCollection {
   return { type: 'FeatureCollection', features: [] };
-}
-
-function transparentPixel(): string {
-  const c = document.createElement('canvas');
-  c.width = 1;
-  c.height = 1;
-  return c.toDataURL('image/png');
 }
 
 /** Hexagon around a point, about `km` kilometres across. */
@@ -169,6 +219,14 @@ export async function createMap(
     attributionControl: false,
     canvasContextAttributes: { antialias: true },
   });
+  // Same console output as MapLibre's default error handler, plus the source
+  // that failed, so a broken layer can be traced instead of guessed.
+  map.on('error', (ev) => {
+    const e = ev as unknown as { error?: Error; sourceId?: string; tile?: { tileID?: { canonical?: { z: number; x: number; y: number } } } };
+    const c = e.tile?.tileID?.canonical;
+    const where = `${e.sourceId ? `source ${e.sourceId}` : ''}${c ? ` tile ${c.z}/${c.x}/${c.y}` : ''}`;
+    console.error(`[map] ${where ? `${where}: ` : ''}${e.error?.name ?? 'Error'}: ${e.error?.message ?? 'unknown'}`);
+  });
   // Attribution is rendered by the app itself (always visible, see #attribution
   // in index.html) so the bottom panel never hides it.
   map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
@@ -176,18 +234,9 @@ export async function createMap(
 
   await map.once('load');
 
-  map.addSource('smoke', {
-    type: 'image',
-    // Transparent 1x1 image until the first smoke frame is drawn.
-    url: transparentPixel(),
-    coordinates: [
-      [108.4, 4.6],
-      [119.2, 4.6],
-      [119.2, -4.2],
-      [108.4, -4.2],
-    ],
-  });
-  map.addLayer({ id: 'smoke', type: 'raster', source: 'smoke', paint: { 'raster-resampling': 'linear', 'raster-fade-duration': 0 } });
+  // The smoke source and layer are created from the first real frame (see
+  // setSmoke): replacing a placeholder image that is still decoding makes
+  // Chrome log "The source image could not be decoded".
 
   map.addSource('districts', { type: 'geojson', data: districts as unknown as GeoJSON.FeatureCollection, promoteId: 'code' });
   map.addLayer({
@@ -322,8 +371,11 @@ export async function createMap(
     if (code) districtCbs.forEach((cb) => cb(code));
   });
 
-  const bboxOf = (code: string): [[number, number], [number, number]] | null => {
-    const f = districts.features.find((x) => x.properties.code === code);
+  let current = districts;
+  let smokeKey = '';
+  const hidden = new Set<string>();
+  const bboxOf = (code: string): Bounds | null => {
+    const f = current.features.find((x) => x.properties.code === code);
     if (!f) return null;
     let [w, s, e, n] = [180, 90, -180, -90];
     const polys = f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates;
@@ -341,13 +393,46 @@ export async function createMap(
     ];
   };
 
+  let imageryDate0 = imageryDate;
   return {
     map,
     setImagery(date) {
+      if (date === imageryDate0) return;
+      imageryDate0 = date;
       (map.getSource('gibs') as RasterTileSource).setTiles([gibsTiles(date)]);
+      (map.getSource('gibs-night') as RasterTileSource).setTiles([gibsNightTiles(date)]);
     },
-    setSmoke(canvas, coordinates) {
-      (map.getSource('smoke') as ImageSource).updateImage({ url: canvas.toDataURL('image/png'), coordinates });
+    setImageryMode(visible, night) {
+      map.setLayoutProperty('gibs', 'visibility', visible && !night ? 'visible' : 'none');
+      map.setLayoutProperty('gibs-night', 'visibility', visible && night ? 'visible' : 'none');
+    },
+    setSmoke(key, draw, coordinates) {
+      // Re-sending the same frame aborts the image that is still loading,
+      // which Chrome reports as "The source image could not be decoded".
+      if (key === smokeKey) return;
+      smokeKey = key;
+      const url = draw().toDataURL('image/png');
+      const src = map.getSource('smoke') as ImageSource | undefined;
+      if (src) {
+        src.updateImage({ url, coordinates });
+        return;
+      }
+      map.addSource('smoke', { type: 'image', url, coordinates });
+      map.addLayer(
+        {
+          id: 'smoke',
+          type: 'raster',
+          source: 'smoke',
+          layout: { visibility: hidden.has('smoke') ? 'none' : 'visible' },
+          paint: { 'raster-resampling': 'linear', 'raster-fade-duration': 0 },
+        },
+        'districts-fill',
+      );
+    },
+    setDistricts(fc) {
+      current = fc;
+      map.removeFeatureState({ source: 'districts' });
+      (map.getSource('districts') as GeoJSONSource).setData(fc as unknown as GeoJSON.FeatureCollection);
     },
     setFires(rows, date) {
       const features = rows
@@ -388,15 +473,21 @@ export async function createMap(
       map.setFilter('district-selected', ['==', ['get', 'code'], code ?? '']);
     },
     setGroupVisible(group, visible) {
-      for (const id of LAYER_GROUPS[group]) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+      for (const id of LAYER_GROUPS[group]) {
+        if (visible) hidden.delete(id);
+        else hidden.add(id);
+        // The smoke layer appears with the first frame and then takes this setting.
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', visible ? 'visible' : 'none');
+      }
     },
-    flyIn() {
-      const cam = map.cameraForBounds(KALIMANTAN_BOUNDS, { padding: PANEL_PADDING, bearing: -12, pitch: 42 });
-      if (cam) map.flyTo({ ...cam, bearing: -12, pitch: 42, duration: 6500, essential: true, curve: 1.6 });
+    flyIn(bounds, duration = 6500) {
+      const cam = map.cameraForBounds(bounds, { padding: panelPadding(), bearing: -12, pitch: 42 });
+      if (cam) map.flyTo({ ...cam, bearing: -12, pitch: 42, duration, essential: true, curve: 1.6 });
     },
     flyToDistrict(code) {
       const b = bboxOf(code);
-      if (b) map.fitBounds(b, { padding: { top: 90, bottom: 190, left: 370, right: 430 }, pitch: 45, duration: 2200, maxZoom: 8.5 });
+      const padding = window.innerWidth < 700 ? { top: 120, bottom: 300, left: 20, right: 20 } : { top: 90, bottom: 190, left: 370, right: 430 };
+      if (b) map.fitBounds(b, { padding, pitch: 45, duration: 2200, maxZoom: 8.5 });
     },
     onDistrict(cb) {
       districtCbs.push(cb);

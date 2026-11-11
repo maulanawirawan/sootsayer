@@ -36,11 +36,16 @@ def fetch(url: str, *, data: bytes | None = None, timeout: int = 120, retries: i
     raise RuntimeError(f"giving up on {url}: {last}")
 
 
+def cache_path(url: str, suffix: str = "", data: bytes | None = None) -> Path:
+    """Where fetch_cached keeps (or would keep) the bytes for this request."""
+    key = hashlib.sha256((url + repr(data)).encode()).hexdigest()[:24]
+    return CACHE / f"{key}{suffix}"
+
+
 def fetch_cached(url: str, *, suffix: str = "", **kw: Any) -> bytes:
     """Fetch once and keep the bytes in pipeline/.cache (raw source snapshots)."""
     CACHE.mkdir(parents=True, exist_ok=True)
-    key = hashlib.sha256((url + repr(kw.get("data"))).encode()).hexdigest()[:24]
-    path = CACHE / f"{key}{suffix}"
+    path = cache_path(url, suffix, kw.get("data"))
     if path.exists():
         return path.read_bytes()
     body = fetch(url, **kw)
