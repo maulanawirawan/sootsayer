@@ -23,6 +23,5 @@ Thumbs.db
 .idea/
 .vscode/
 
-# IMPORTANT: .kiro/ is intentionally TRACKED (specs, steering, hooks).
+# IMPORTANT: .kiro/ is intentionally TRACKED (specs, steering, hooks, settings).
 # Do NOT add .kiro/ here. It is part of the project and the hackathon entry.
-/mcp-server/.venv/

@@ -62,9 +62,11 @@
     `.kiro/settings/mcp.json`.
   - _Requirements: 4.1, 4.2, 4.3_
 
-- [ ] 12. Docs and deploy
+- [x] 12. Docs and deploy
   - [x] README, `docs/METHOD.md`, `docs/DATA.md`, `docs/DEMO.md`,
-    `BUSINESS.md`, `vercel.json`.
-  - [ ] Public GitHub repo, Vercel deploy, and FIRMS MAP_KEY for replay fires:
-    waiting for the owner's approval.
+    `BUSINESS.md`, `vercel.json`, `.vercelignore`.
+  - [x] Public repo github.com/maulanawirawan/sootsayer (MIT detected) and
+    production at https://sootsayer.vercel.app, with auto-deploy on push to
+    main; `/api/air`, `/api/fires`, data files, and `engine.wasm` verified live.
+  - [ ] Optional follow-up: FIRMS MAP_KEY so the October replay includes fires.
   - _Requirements: 1.1, 2.5_
