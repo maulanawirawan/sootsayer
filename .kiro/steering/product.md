@@ -9,11 +9,19 @@ detections, and the modelled smoke field.
 
 Indonesian tagline: "Peramal jelaga untuk puskesmas."
 
+## Coverage
+Kalimantan (5 provinces) and Sumatra's peatland provinces (Riau, Jambi,
+Sumatera Selatan), where the 2026 haze hit. The study is from Central
+Kalimantan; everywhere else its estimates are applied by analogy, and the app
+says so. Other regions are data packs (see structure.md); other countries need
+a local study before any number is shown.
+
 ## Who it is for
 - Dinas Kesehatan (district and provincial health offices) deciding where to
   send staff, masks, and oxygen, and where to open posko and rumah oksigen.
 - Puskesmas heads preparing for a surge.
-- AI agents (for example inside Kiro) that query the outlook over MCP.
+- AI agents (for example inside Kiro or Kiro Crew) that query the outlook and
+  forward the engine's briefing over MCP.
 
 ## House rules (never break these)
 1. Real data only. The product never shows mock or made-up data. Every layer

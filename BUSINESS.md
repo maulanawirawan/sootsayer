@@ -14,7 +14,7 @@ queue forms.
 |---|---|---|
 | Dinas Kesehatan (district and province) | Five-day outlook per district and puskesmas, priority list for posko and rumah oksigen | Free open-source app; paid setup and support for an official instance |
 | Puskesmas heads | Expected visits for their own puskesmas, clean-air room sizing | Free |
-| Kemenkes crisis centre, BNPB, BPBD | Province-wide picture across Kalimantan and Sumatra, agent briefings via MCP | Government contract for hosting, SLA, and integration |
+| Kemenkes crisis centre, BNPB, BPBD | Province-wide picture across Kalimantan and Sumatra (both live today), a daily briefing text from the engine, agent briefings via MCP | Government contract for hosting, SLA, and integration |
 | NGOs and donors (humanitarian groups running health posts) | Where to place mobile clinics and oxygen | Grants or sponsorship of the public instance |
 | Plantation and forestry companies with fire-prevention duties | Health impact around their concessions for CSR planning | Paid reports |
 
@@ -23,9 +23,15 @@ queue forms.
 1. **Open core.** The app, engine, and MCP server stay MIT-licensed and free.
 2. **Managed instance.** Hosting with a commercial Open-Meteo plan (its free
    API is non-commercial), uptime guarantees, and data refresh.
-3. **Integration.** Import real puskesmas visit counts (from the health
-   office's own records) so baselines stop being study defaults, plus
-   WhatsApp or SMS alerts to puskesmas heads.
+3. **Integration.** The app already imports a health office's own puskesmas
+   list with usual visit counts (CSV, kept in the browser) and writes a
+   briefing to share. Paid work: connecting official records directly, and
+   scheduled briefings to WhatsApp, Telegram, or SMS (a Kiro Crew job can do
+   the Telegram part today).
+5. **More regions.** A region is a data pack (boundaries, puskesmas, smoke
+   grid). Covering more of Indonesia mainly needs a commercial air-quality API
+   plan: all 516 districts would cost about 2,655 weighted calls per refresh,
+   over the free tier.
 4. **Validation and training.** Calibrate the relative risks with local 2026
    visit data together with a university partner, then train district teams.
 

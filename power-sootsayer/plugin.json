@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sootsayer",
+  "version": "0.2.0",
+  "description": "Haze-to-clinic outlook for Indonesian puskesmas: five-day smoke forecast, expected change in respiratory visits with 95% ranges, priority districts for posko and oxygen houses, clean-air rooms, and ready-to-send Dinkes briefings, from open data and one Rust engine.",
+  "author": {
+    "name": "Maulana Wirawan",
+    "url": "https://github.com/maulanawirawan"
+  },
+  "keywords": ["sootsayer", "haze", "kabut", "asap", "karhutla", "wildfire smoke", "puskesmas", "dinkes", "ispa", "posko", "rumah oksigen"],
+  "homepage": "https://sootsayer.vercel.app",
+  "repository": "https://github.com/maulanawirawan/sootsayer",
+  "license": "MIT"
+}

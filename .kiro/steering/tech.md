@@ -11,9 +11,15 @@
    shrink hourly data to daily means.
 4. **Data pipeline** (`pipeline/`): Python 3.12 with uv. Builds the static
    reference data (district boundaries, puskesmas) and the replay snapshot of
-   the October 2026 haze peak.
+   the October 2026 haze peak, per region. A region (`REGIONS` in
+   `pipeline/sootsayer_pipeline/__init__.py`) is data only: bbox on the 0.4°
+   grid, provinces by geoBoundaries ADM1 `shapeISO`, and the list of cities.
+   Shipped: `kalimantan` (5 provinces) and `sumatra` (Riau, Jambi, Sumatera
+   Selatan).
 5. **MCP server** (`mcp-server/`): MCP Python SDK v2 (`MCPServer`, formerly
-   FastMCP). Exposes the outlook to agents by calling the engine CLI.
+   FastMCP). Exposes the outlook and the briefing to agents by calling the
+   engine CLI. A custom agent (`.kiro/agents/sootsayer-briefer.md`) and a Kiro
+   power (`power-sootsayer/`) wrap it.
 
 ## Data sources (all open; attribution is shown in the app)
 | Layer | Source | Access | License |
@@ -22,6 +28,8 @@
 | Fire detections | NASA FIRMS VIIRS NOAA-20 NRT CSV (24h / 48h / 7d, Southeast Asia) | no key, no CORS (proxy) | NASA open data |
 | Fire history (replay) | NASA FIRMS area API | free MAP_KEY | NASA open data |
 | Day imagery | NASA GIBS `VIIRS_NOAA20_CorrectedReflectance_TrueColor` and `MODIS_Terra_CorrectedReflectance_TrueColor`, EPSG:3857, up to z9 | no key, CORS ok | NASA open data |
+| Night imagery | NASA GIBS `VIIRS_NOAA20_DayNightBand_At_Sensor_Radiance`, EPSG:3857 `GoogleMapsCompatible_Level8`, PNG | no key, CORS ok | NASA open data |
+| Waiting-room factors | Barn et al. 2008 (indoor/outdoor PM2.5 in forest-fire smoke), Holder et al. 2022 (Corsi–Rosenthal box CADR) | literature, in `method.rs` | cited |
 | Base imagery | EOX Sentinel-2 cloudless **2016** (`s2cloudless_3857`) | no key, CORS ok | CC BY 4.0 (later years are NC-SA: do not use) |
 | Terrain | AWS Terrain Tiles, Terrarium encoding | no key, CORS ok | open, attribution required |
 | Labels and boundaries basemap | OpenFreeMap vector tiles | no key, CORS ok | OpenMapTiles + OSM (ODbL) |
@@ -56,25 +64,34 @@ npm install --prefix web
 npm run dev --prefix web
 npm run build --prefix web
 
-# Data pipeline (reference data + replay snapshot)
-uv run --project pipeline python -m sootsayer_pipeline.build_reference
-uv run --project pipeline python -m sootsayer_pipeline.build_replay
+# Data pipeline (reference data for every region, replay per region)
+pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_reference [--region sumatra]
+pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_replay --region sumatra
 
 # MCP server (stdio)
 uv run --project mcp-server python mcp-server/server.py
 ```
 
 ## Fair use of free APIs
-- Open-Meteo free tier: 600 calls/min, 10,000/day, non-commercial. One
-  `/api/air` refresh asks for 368 locations; keep the edge cache on and do not
-  loop requests while testing (a 429 shows up as a named CAMS failure).
+- Open-Meteo free tier: 600 calls/min, 10,000/day, non-commercial. A location
+  with more than 14 days counts as days/14 calls, so one live refresh of 19
+  days costs about 1.36 calls per location: `/api/air?region=kalimantan` asks
+  for 368 locations (~500 calls), `region=sumatra` for 186 (~253). Keep the
+  edge cache on, request one region at a time, and do not loop requests while
+  testing (a 429 shows up as a named CAMS failure). All of Indonesia would be
+  1,956 locations (~2,655 calls per refresh): over the per-minute limit.
+- The replay builder pauses 65 s between uncached 100-location archive
+  requests (45 days weigh ~321 calls each).
 - FIRMS NRT CSVs need no key; the area API (replay fires) needs a free MAP_KEY
   in `FIRMS_MAP_KEY`, never committed.
 
 ## Rules of thumb
 - Units live in field names: `pm10_ugm3`, `pm25_ugm3`, `visits_per_day`.
-- Dates are ISO `YYYY-MM-DD`. Daily means use UTC+7 (WIB) for all of
-  Kalimantan; the one-hour WITA offset is ignored and documented.
+- Dates are ISO `YYYY-MM-DD`. Daily means use UTC+7 (WIB) for every region;
+  the one-hour WITA offset in part of Kalimantan is ignored and documented.
+- Text that leaves the app (briefings) is written by the engine
+  (`engine/src/brief.rs`), never by a language model, so the web app and the
+  MCP tool send the same bytes.
 - The engine is deterministic: same input, same output. Property-based tests
   guard the invariants (range ordering, no-haze means no change, monotonic
   duration effect in the kabupaten profile).

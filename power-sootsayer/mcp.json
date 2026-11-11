@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "sootsayer": {
+      "type": "stdio",
+      "command": "uv",
+      "args": ["run", "--project", "${SOOTSAYER_HOME}/mcp-server", "python", "${SOOTSAYER_HOME}/mcp-server/server.py"]
+    }
+  }
+}

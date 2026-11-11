@@ -2,6 +2,7 @@
 engine/
 pipeline/
 mcp-server/
+power-sootsayer/
 docs/
 **/node_modules
 web/dist

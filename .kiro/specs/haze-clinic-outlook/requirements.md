@@ -121,6 +121,7 @@ haze-day definition only and SHALL say so on screen.
 
 ## Out of scope (for this spec)
 
-- Provinces outside Kalimantan.
+- Provinces outside Kalimantan (added later as region packs: see
+  `.kiro/specs/outlook-v2/`).
 - Mask and medicine quantities that need age-structured population data.
 - Individual medical advice, logins, and any personal data.
