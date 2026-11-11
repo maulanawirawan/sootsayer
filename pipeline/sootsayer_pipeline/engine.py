@@ -61,8 +61,13 @@ def district_pm10(districts: list[dict], pm10_cells: list[list[float | None]]) -
         for d in range(n_days):
             vals = [pm10_cells[c][d] for c in cells if pm10_cells[c][d] is not None]
             # Plain left-to-right mean, no rounding: web/src/data.ts does exactly
-            # the same, so both feed the engine identical numbers.
-            series.append(sum(vals) / len(vals) if vals else None)
+            # the same, so both feed the engine identical numbers. Not sum():
+            # since Python 3.12 it uses compensated summation, which can differ
+            # from the JavaScript loop in the last bit.
+            total = 0.0
+            for v in vals:
+                total += v
+            series.append(total / len(vals) if vals else None)
         out[f["properties"]["code"]] = series
     return out
 

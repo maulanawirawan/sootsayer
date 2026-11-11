@@ -266,7 +266,13 @@ def write_index() -> dict:
             rep = json.loads(rp.read_text(encoding="utf-8"))
             replay = {"file": rp.name, "window_start": rep["window_start"],
                       "first_day": rep["days"][0], "last_day": rep["days"][-1],
-                      "fires": bool(rep["fires"]["available"]), "generated_at": rep["generated_at"]}
+                      "fires": bool(rep["fires"]["available"]), "generated_at": rep["generated_at"],
+                      "forecast": None}
+            fp = r.data_dir / "replay-2026-10-forecast.json"
+            if fp.exists():
+                fc = json.loads(fp.read_text(encoding="utf-8"))
+                replay["forecast"] = {"file": fp.name, "first_issue": fc["issue_dates"][0],
+                                      "last_issue": fc["issue_dates"][-1], "generated_at": fc["generated_at"]}
         regions.append({
             "id": rid,
             "name": r.name,
