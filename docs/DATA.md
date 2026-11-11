@@ -36,8 +36,15 @@ Sootsayer uses only open data. Every source is credited in the app's footer.
 
 ```powershell
 uv run --project pipeline python -m sootsayer_pipeline.build_reference   # districts, puskesmas, grid
-$env:FIRMS_MAP_KEY = "<your free key>"                                    # optional: fires in the replay
 uv run --project pipeline python -m sootsayer_pipeline.build_replay      # October 2026 replay
 ```
+
+Fires in the replay need a free FIRMS MAP_KEY
+([request one here](https://firms.modaps.eosdis.nasa.gov/api/map_key/)). Put
+it in a `.env` file at the repo root (copy `.env.example`; `.env` is
+git-ignored) or in the `FIRMS_MAP_KEY` environment variable. The builder asks
+FIRMS which dates have standard-processing data and uses near-real-time data
+for the rest, in requests of at most 5 days (the area API limit), and keeps
+detections whose UTC+7 date falls in the replay.
 
 Raw downloads are cached in `pipeline/.cache/` (not committed).
