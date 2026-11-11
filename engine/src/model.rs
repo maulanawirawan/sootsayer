@@ -290,7 +290,43 @@ pub enum Lang {
 #[serde(rename_all = "lowercase")]
 pub enum BriefMode {
     Live,
+    /// Hindsight replay: archived model data.
     Replay,
+    /// Replay of the forecast that was available on the morning of the first day.
+    Forecast,
+}
+
+// ---------- forecast check ----------
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct CheckInput {
+    pub lead_days: u32,
+    /// (lead day, forecast PM10, hindsight PM10) per district-day, ug/m3.
+    pub pairs: Vec<(u32, Option<f64>, Option<f64>)>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LeadCheck {
+    pub lead_day: u32,
+    pub pairs: u32,
+    pub missing: u32,
+    pub hits: u32,
+    pub misses: u32,
+    pub false_alarms: u32,
+    pub correct_negatives: u32,
+    /// Probability of detection; None when hindsight had no haze day.
+    pub pod: Option<f64>,
+    /// False alarm ratio; None when the forecast had no haze day.
+    pub far: Option<f64>,
+    pub accuracy: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CheckOutput {
+    pub threshold_pm10_ugm3: f64,
+    pub leads: Vec<LeadCheck>,
+    pub definitions: &'static str,
 }
 
 #[derive(Debug, Clone, Deserialize)]

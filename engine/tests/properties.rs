@@ -2,6 +2,7 @@
 
 use proptest::prelude::*;
 use sootsayer_engine::brief::brief;
+use sootsayer_engine::check::forecast_check;
 use sootsayer_engine::method;
 use sootsayer_engine::model::*;
 use sootsayer_engine::outlook::outlook;
@@ -141,6 +142,28 @@ proptest! {
         prop_assert!(i.with_cleaner_ugm3.low <= i.with_cleaner_ugm3.high);
         prop_assert!(i.with_cleaner_ugm3.high <= i.without_cleaner_ugm3.high);
         prop_assert!(i.without_cleaner_ugm3.high <= outdoor);
+    }
+
+    #[test]
+    fn forecast_check_counts_every_pair_once_and_is_symmetric(
+        pairs in prop::collection::vec((0u32..5, pm10(), pm10()), 0..300)
+    ) {
+        let out = forecast_check(&CheckInput { lead_days: 5, pairs: pairs.clone() }).unwrap();
+        let total: u32 = out.leads.iter().map(|r| r.pairs).sum();
+        prop_assert_eq!(total as usize, pairs.len());
+        for r in &out.leads {
+            prop_assert_eq!(r.hits + r.misses + r.false_alarms + r.correct_negatives + r.missing, r.pairs);
+            for x in [r.pod, r.far, r.accuracy].into_iter().flatten() {
+                prop_assert!((0.0..=1.0).contains(&x));
+            }
+        }
+        // Swapping forecast and hindsight swaps misses and false alarms, nothing else.
+        let swapped: Vec<_> = pairs.iter().map(|(l, f, h)| (*l, *h, *f)).collect();
+        let back = forecast_check(&CheckInput { lead_days: 5, pairs: swapped }).unwrap();
+        for (a, b) in out.leads.iter().zip(&back.leads) {
+            prop_assert_eq!((a.hits, a.correct_negatives, a.missing), (b.hits, b.correct_negatives, b.missing));
+            prop_assert_eq!((a.misses, a.false_alarms), (b.false_alarms, b.misses));
+        }
     }
 
     #[test]

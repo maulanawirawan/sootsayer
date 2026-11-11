@@ -18,6 +18,7 @@ struct Words {
     for_office: &'static str,
     mode_live: &'static str,
     mode_replay: &'static str,
+    mode_forecast: &'static str,
     priority_head: &'static str,
     priority_hint: &'static str,
     haze_days: &'static str,
@@ -44,6 +45,7 @@ const ID: Words = Words {
     for_office: "untuk Dinas Kesehatan",
     mode_live: "Langsung: prakiraan CAMS terbaru",
     mode_replay: "Putar ulang (hindsight): data model arsip, bukan prakiraan yang terbit pada hari itu",
+    mode_forecast: "Putar ulang (seperti diprakirakan): prakiraan CAMS yang tersedia pukul 06.00 WIB pada hari pertama",
     priority_head: "Prioritas posko & rumah oksigen",
     priority_hint: "Perkiraan perubahan kunjungan pernapasan puskesmas, rata-rata {n} hari, dengan rentang 95%:",
     haze_days: "{n} hari kabut",
@@ -70,6 +72,7 @@ const EN: Words = Words {
     for_office: "for the district health office",
     mode_live: "Live: latest CAMS forecast",
     mode_replay: "Replay (hindsight): archived model data, not the forecast issued on that day",
+    mode_forecast: "Replay (as forecast): the CAMS forecast available at 06:00 WIB on the first day",
     priority_head: "Priority for posko and oxygen houses",
     priority_hint: "Expected change in puskesmas respiratory visits, mean over {n} days, with 95% range:",
     haze_days: "{n} haze days",
@@ -202,6 +205,7 @@ pub fn brief(input: &BriefInput) -> Result<BriefOutput, EngineError> {
         match input.mode {
             BriefMode::Live => w.mode_live,
             BriefMode::Replay => w.mode_replay,
+            BriefMode::Forecast => w.mode_forecast,
         }
         .to_string(),
         String::new(),
@@ -229,7 +233,8 @@ pub fn brief(input: &BriefInput) -> Result<BriefOutput, EngineError> {
     if kota_ranked {
         lines.push(w.kota_note.to_string());
     }
-    if input.mode == BriefMode::Live {
+    // Live and as-forecast windows have no fire data for future days.
+    if input.mode != BriefMode::Replay {
         lines.push(w.future_fires.to_string());
     }
     lines.push(String::new());
@@ -353,6 +358,16 @@ mod tests {
             assert!(out.text.contains(l));
         }
         assert!(out.text.contains("Oct 2026"));
+    }
+
+    #[test]
+    fn forecast_replay_says_what_was_known_that_morning() {
+        let out = brief(&input(Lang::En, 300.0, BriefMode::Forecast)).unwrap();
+        assert!(out.text.contains("Replay (as forecast): the CAMS forecast available at 06:00 WIB"));
+        assert!(out.text.contains("Forecast days have no fire data yet"));
+        assert!(!out.text.contains("hindsight"));
+        let id = brief(&input(Lang::Id, 300.0, BriefMode::Forecast)).unwrap();
+        assert!(id.text.contains("seperti diprakirakan"));
     }
 
     #[test]
