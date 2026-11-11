@@ -14,6 +14,7 @@ import type {
   Puskesmas,
   ReferenceMeta,
   ReplayFile,
+  ReplayFiresFile,
   SourceError,
 } from './types';
 
@@ -40,6 +41,10 @@ export interface Dataset {
   errors: SourceError[];
   stamps: { label: string; when: string }[];
   replayFiresAvailable?: boolean;
+  /** Fire counts per district per day computed at build time (replay). */
+  fireCounts?: Record<string, number[]>;
+  /** Replay fire points load after the first frame. */
+  pointsFile?: string;
 }
 
 class NamedError extends Error {
@@ -139,6 +144,7 @@ export async function loadLive(ref: Reference): Promise<Dataset> {
 export async function loadReplay(): Promise<Dataset> {
   const rep = await getJson<ReplayFile>('/data/replay-2026-10.json', 'replay');
   const selectable = rep.days.filter((d) => d >= rep.window_start);
+  const counted = rep.fires.available && rep.fires.district_counts;
   return {
     mode: 'replay',
     days: rep.days,
@@ -146,12 +152,20 @@ export async function loadReplay(): Promise<Dataset> {
     anchor: rep.window_start,
     pm25: rep.cams.pm25_ugm3,
     pm10: rep.cams.pm10_ugm3,
-    fires: rep.fires.rows,
-    fireDaysKnown: rep.fires.available ? new Set(rep.days) : new Set(),
+    fires: [],
+    fireDaysKnown: counted ? new Set(rep.days) : new Set(),
     errors: [],
     stamps: [{ label: 'replay', when: rep.generated_at }],
-    replayFiresAvailable: rep.fires.available,
+    replayFiresAvailable: Boolean(counted),
+    fireCounts: counted ? rep.fires.district_counts : undefined,
+    pointsFile: rep.fires.points_file ?? undefined,
   };
+}
+
+/** Load the replay's fire points for the map (about 0.8 MB gzipped). */
+export async function loadReplayFires(file: string): Promise<FireRow[]> {
+  const f = await getJson<ReplayFiresFile>(`/data/${file}`, 'NASA FIRMS (replay points)');
+  return f.rows.map(([lon, lat, day, frp]) => [lon, lat, f.days[day], '', frp, '', ''] as FireRow);
 }
 
 /** Daily district PM10: plain mean over the district's cells (known values only). */

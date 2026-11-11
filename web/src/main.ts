@@ -9,6 +9,7 @@ import {
   loadOverrides,
   loadReference,
   loadReplay,
+  loadReplayFires,
   multipolygon,
   saveOverrides,
   type Dataset,
@@ -55,6 +56,7 @@ function imageryFor(date: string): { date: string; latest: boolean } {
 }
 
 function computeFireCounts(ref: Reference, ds: Dataset): Record<string, number[]> {
+  if (ds.fireCounts) return ds.fireCounts; // replay: counted by the same engine at build time
   if (!ds.fires.length) return {};
   try {
     return engine.fireCounts({
@@ -266,6 +268,19 @@ async function switchMode(mode: 'live' | 'replay', preferredDate?: string): Prom
     url.searchParams.set('date', S.selected);
     history.replaceState(null, '', url);
     render();
+    if (ds.pointsFile) {
+      // The outlook already uses the build-time counts; the points only draw the map layer.
+      loadReplayFires(ds.pointsFile)
+        .then((rows) => {
+          if (S.ds !== ds) return;
+          ds.fires = rows;
+          render();
+        })
+        .catch((e: unknown) => {
+          ds.errors.push({ source: 'NASA FIRMS (replay points)', error: e instanceof Error ? e.message : String(e) });
+          if (S.ds === ds) render();
+        });
+    }
   } finally {
     ui.setLoading(false);
   }

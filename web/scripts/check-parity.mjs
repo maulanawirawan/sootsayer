@@ -16,6 +16,8 @@ const day = process.argv[2] ?? '2026-10-15';
 const replay = data('replay-2026-10.json');
 const districts = data('districts.geojson').features;
 const puskesmas = data('puskesmas.json');
+// With FIRMS data in the replay, fire-haze days are exercised too.
+const counts = replay.fires?.available ? replay.fires.district_counts ?? null : null;
 
 const end = Math.min(replay.days.indexOf(day) + 4, replay.days.length - 1);
 if (replay.days.indexOf(day) < 0) throw new Error(`${day} is not in the replay`);
@@ -41,7 +43,7 @@ const input = {
       }
       return n ? sum / n : null;
     }),
-    fire_count: days.map(() => null),
+    fire_count: days.map((_, d) => (counts ? (counts[f.properties.code]?.[d] ?? null) : null)),
   })),
   puskesmas: puskesmas.map((p) => ({ id: p.id, name: p.name, district_code: p.district_code, baseline_visits_per_day: null })),
 };

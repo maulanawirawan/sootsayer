@@ -42,7 +42,8 @@ first, how many extra visits to expect, and how big a clean-air room has to be.
 - **Puskesmas view.** Expected visits per day for 339 OpenStreetMap
   puskesmas, an editable baseline (your own records stay in your browser), and
   a clean-air room calculator.
-- **Replay of October 2026** from archived CAMS data, for days with no haze.
+- **Replay of October 2026** from archived CAMS smoke data and 156,658 NASA
+  FIRMS fire detections over Kalimantan (17 Sep – 31 Oct), for days with no haze.
 - **Agents can ask it.** An MCP server gives Kiro (or any MCP client) the same
   numbers: `priority`, `haze_outlook`, `clinic_plan`, `list_districts`.
 - **Honest by design.** Every number shows its range and source, failed

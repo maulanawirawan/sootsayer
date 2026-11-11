@@ -8,3 +8,7 @@ web/dist
 **/.venv
 **/__pycache__
 *.pyc
+# Local secrets (build-time keys such as FIRMS_MAP_KEY) never leave this machine.
+.env
+.env.*
+!.env.example

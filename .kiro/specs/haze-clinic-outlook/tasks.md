@@ -30,8 +30,9 @@
 
 - [x] 6. Replay snapshot for October 2026
   - CAMS archive as daily means for 17 Sep – 31 Oct 2026 (594 cells, no gaps).
-  - FIRMS history: runs only with `FIRMS_MAP_KEY`; until then the replay is
-    haze-only and says so on screen.
+  - FIRMS history via the area API (5-day requests, SP/NRT chosen from data
+    availability, UTC+7 dates), counted per district by the engine CLI; points
+    split into a second file the app loads after the first frame.
   - _Requirements: 5.1, 5.2_
 
 - [x] 7. Edge functions
@@ -68,5 +69,7 @@
   - [x] Public repo github.com/maulanawirawan/sootsayer (MIT detected) and
     production at https://sootsayer.vercel.app, with auto-deploy on push to
     main; `/api/air`, `/api/fires`, data files, and `engine.wasm` verified live.
-  - [ ] Optional follow-up: FIRMS MAP_KEY so the October replay includes fires.
+  - [x] FIRMS MAP_KEY (kept in the git-ignored `.env`): the October replay now
+    includes 156,658 fire detections and fire-haze days; CLI/WASM parity
+    re-checked with fires.
   - _Requirements: 1.1, 2.5_

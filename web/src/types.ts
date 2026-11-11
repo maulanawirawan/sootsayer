@@ -88,8 +88,23 @@ export interface ReplayFile {
   days: string[];
   window_start: string;
   cams: { pm25_ugm3: (number | null)[][]; pm10_ugm3: (number | null)[][]; source: string; license: string };
-  fires: { available: boolean; note: string; rows: FireRow[] };
+  fires: {
+    available: boolean;
+    note: string;
+    total?: number;
+    /** district code -> detections per day, counted by the Rust engine at build time */
+    district_counts?: Record<string, number[]>;
+    points_file?: string | null;
+  };
   label: string;
+}
+
+/** Compact replay fire points: [lon, lat, day index, FRP in MW]. */
+export interface ReplayFiresFile {
+  days: string[];
+  columns: string[];
+  rows: [number, number, number, number | null][];
+  source: string;
 }
 
 export interface SourceError {

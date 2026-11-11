@@ -58,11 +58,14 @@ def _dataset(mode: Mode) -> dict:
     if hit and (mode == "replay" or time.time() - hit[0] < LIVE_TTL_S):
         return hit[1]
     errors: list[str] = []
+    precomputed: dict[str, list[int]] | None = None
     if mode == "replay":
         rep = json.loads((WEB_DATA / "replay-2026-10.json").read_text(encoding="utf-8"))
         days, pm10 = rep["days"], rep["cams"]["pm10_ugm3"]
-        rows = rep["fires"]["rows"]
-        known = set(days) if rep["fires"]["available"] else set()
+        # Fire counts per district per day were made by the same engine at build time.
+        precomputed = rep["fires"].get("district_counts") or None
+        rows = []
+        known = set(days) if rep["fires"]["available"] and precomputed else set()
         anchor, stamp = rep["window_start"], rep["generated_at"]
         selectable = [d for d in days if d >= anchor]
     else:
@@ -76,7 +79,7 @@ def _dataset(mode: Mode) -> dict:
             errors.append(f"NASA FIRMS failed: {e}")
         stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
         selectable = days
-    counts = fire_counts(DISTRICTS, days, rows) if rows else {}
+    counts = precomputed if precomputed is not None else (fire_counts(DISTRICTS, days, rows) if rows else {})
     ds = {"mode": mode, "days": days, "pm10": pm10, "counts": counts, "known": known,
           "anchor": anchor, "selectable": selectable, "fetched_at": stamp, "errors": errors}
     _CACHE[key] = (time.time(), ds)
