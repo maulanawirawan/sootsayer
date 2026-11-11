@@ -9,7 +9,7 @@ use std::process::ExitCode;
 
 use sootsayer_engine::json;
 
-const USAGE: &str = "usage: sootsayer <outlook|clean-air|fire-counts> [--input FILE|-] [--pretty]";
+const USAGE: &str = "usage: sootsayer <outlook|clean-air|fire-counts|locate|brief> [--input FILE|-] [--pretty]";
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -49,6 +49,8 @@ fn main() -> ExitCode {
         "outlook" => json::outlook(&buf),
         "clean-air" => json::clean_air(&buf),
         "fire-counts" => json::fire_counts(&buf),
+        "locate" => json::locate(&buf),
+        "brief" => json::brief(&buf),
         other => {
             eprintln!("unknown command '{other}'\n{USAGE}");
             return ExitCode::from(2);

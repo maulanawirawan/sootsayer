@@ -5,6 +5,7 @@
 //! and in the browser (WebAssembly). Both call [`json`], so identical input
 //! gives byte-identical output.
 
+pub mod brief;
 pub mod dates;
 pub mod error;
 pub mod geo;
@@ -67,6 +68,14 @@ pub mod json {
 
     pub fn fire_counts(bytes: &[u8]) -> String {
         run(bytes, crate::geo::fire_counts)
+    }
+
+    pub fn locate(bytes: &[u8]) -> String {
+        run(bytes, crate::geo::locate)
+    }
+
+    pub fn brief(bytes: &[u8]) -> String {
+        run(bytes, crate::brief::brief)
     }
 }
 

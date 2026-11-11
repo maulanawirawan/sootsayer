@@ -1,6 +1,8 @@
 //! Property-based tests for the engine's invariants.
 
 use proptest::prelude::*;
+use sootsayer_engine::brief::brief;
+use sootsayer_engine::method;
 use sootsayer_engine::model::*;
 use sootsayer_engine::outlook::outlook;
 use sootsayer_engine::plan::clean_air;
@@ -121,9 +123,46 @@ proptest! {
     ) {
         let out = clean_air(&CleanAirInput {
             floor_area_m2: area, ceiling_height_m: height, unit_cadr_m3h: unit, target_ach: Some(ach),
+            outdoor_pm25_ugm3: None,
         }).unwrap();
         let needed = area * height * ach;
         prop_assert!(f64::from(out.units) * unit >= needed * (1.0 - 1e-12));
         prop_assert!(out.units == 0 || f64::from(out.units - 1) * unit < needed);
+    }
+
+    #[test]
+    fn indoor_estimate_is_ordered_and_lower_with_a_cleaner(outdoor in 0.0f64..3000.0) {
+        let out = clean_air(&CleanAirInput {
+            floor_area_m2: 48.0, ceiling_height_m: 3.0, unit_cadr_m3h: 300.0, target_ach: None,
+            outdoor_pm25_ugm3: Some(outdoor),
+        }).unwrap();
+        let i = out.indoor.unwrap();
+        prop_assert!(i.without_cleaner_ugm3.low <= i.without_cleaner_ugm3.high);
+        prop_assert!(i.with_cleaner_ugm3.low <= i.with_cleaner_ugm3.high);
+        prop_assert!(i.with_cleaner_ugm3.high <= i.without_cleaner_ugm3.high);
+        prop_assert!(i.without_cleaner_ugm3.high <= outdoor);
+    }
+
+    #[test]
+    fn every_brief_carries_ranges_limits_and_the_disclaimer(input in outlook_input(), english in any::<bool>()) {
+        let lang = if english { Lang::En } else { Lang::Id };
+        let b = BriefInput {
+            outlook: input, lang, region_name: "Kalimantan".into(), mode: BriefMode::Live,
+            data_times: vec![], errors: vec![], top: 5, link: None,
+        };
+        let out = brief(&b).unwrap();
+        let limits: &[&str] = if english { &method::LIMITS } else { &method::LIMITS_ID };
+        for l in limits { prop_assert!(out.text.contains(l)); }
+        let disclaimer = if english { "not medical advice" } else { "bukan nasihat medis" };
+        prop_assert!(out.text.contains(disclaimer));
+        // Every ranked line shows a point value followed by its 95% range.
+        let ranked_lines = out.text.lines().filter(|l| l.starts_with(|c: char| c.is_ascii_digit()) && l.contains(". ")).count();
+        prop_assert_eq!(ranked_lines as u32, out.ranked);
+        const ELLIPSIS: &str = " \u{2026} ";
+        for l in out.text.lines().filter(|l| l.starts_with(|c: char| c.is_ascii_digit()) && l.contains(". ")) {
+            let has_range = l.contains(ELLIPSIS) && l.contains('(') && l.contains(')');
+            prop_assert!(has_range, "ranked line without a range: {}", l);
+        }
+        prop_assert_eq!(serde_json::to_string(&brief(&b).unwrap()).unwrap(), serde_json::to_string(&out).unwrap());
     }
 }

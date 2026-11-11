@@ -210,6 +210,34 @@ pub struct CleanAirInput {
     pub unit_cadr_m3h: f64,
     #[serde(default)]
     pub target_ach: Option<f64>,
+    /// Outdoor daily mean PM2.5 for the day in question (the district's CAMS
+    /// value). When given, the plan adds a measured indoor/outdoor estimate.
+    #[serde(default)]
+    pub outdoor_pm25_ugm3: Option<f64>,
+}
+
+/// A low-high span that is not a confidence interval (no point estimate).
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
+pub struct Span {
+    pub low: f64,
+    pub high: f64,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct IndoorEstimate {
+    pub outdoor_pm25_ugm3: f64,
+    /// Outdoor PM2.5 times the measured infiltration without air cleaners.
+    pub without_cleaner_ugm3: Span,
+    /// Outdoor PM2.5 times the measured infiltration with HEPA air cleaners.
+    pub with_cleaner_ugm3: Span,
+    pub source: &'static str,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct CadrPreset {
+    pub name: &'static str,
+    pub cadr_m3h: f64,
+    pub source: &'static str,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -221,6 +249,96 @@ pub struct CleanAirOutput {
     pub units: u32,
     pub delivered_ach: f64,
     pub source: &'static str,
+    pub indoor: Option<IndoorEstimate>,
+    pub presets: Vec<CadrPreset>,
+}
+
+// ---------- point location (puskesmas import) ----------
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct LocateInput {
+    pub districts: Vec<DistrictShape>,
+    /// [lon, lat]
+    pub points: Vec<[f64; 2]>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct Located {
+    pub district_code: String,
+    /// True when the point was just outside every district and was snapped
+    /// to the nearest one (within `geo::SNAP_DEG`), as the pipeline does.
+    pub snapped: bool,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct LocateOutput {
+    /// One entry per input point; None when the point is in no district.
+    pub located: Vec<Option<Located>>,
+}
+
+// ---------- briefing ----------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Lang {
+    Id,
+    En,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum BriefMode {
+    Live,
+    Replay,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct DataTime {
+    pub source: String,
+    pub time: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SourceIssue {
+    pub source: String,
+    pub error: String,
+}
+
+fn default_top() -> u32 {
+    5
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BriefInput {
+    pub outlook: OutlookInput,
+    pub lang: Lang,
+    pub region_name: String,
+    pub mode: BriefMode,
+    /// When each source was fetched; the engine has no clock, callers say.
+    #[serde(default)]
+    pub data_times: Vec<DataTime>,
+    #[serde(default)]
+    pub errors: Vec<SourceIssue>,
+    #[serde(default = "default_top")]
+    pub top: u32,
+    #[serde(default)]
+    pub link: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct BriefOutput {
+    pub lang: Lang,
+    pub title: String,
+    /// Plain text that reads well in WhatsApp, Telegram, email, and print.
+    pub text: String,
+    pub window_start: String,
+    pub window_end: String,
+    pub ranked: u32,
+    pub complete: bool,
 }
 
 // ---------- fire assignment ----------

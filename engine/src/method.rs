@@ -75,12 +75,44 @@ pub fn default_baseline(profile: Profile) -> f64 {
     }
 }
 
+/// Infiltration factor of outdoor PM2.5 into homes during forest-fire and
+/// wood smoke, measured in British Columbia (Barn P, Larson T, Noullett M,
+/// Kennedy S, Copes R, Brauer M. Infiltration of forest fire and residential
+/// wood smoke: an evaluation of air cleaner effectiveness. J Expo Sci Environ
+/// Epidemiol 2008;18(5):503-511, abstract). Mean Finf without HEPA air
+/// cleaners: 0.27 (winter, n=19) and 0.61 (summer, n=13); with HEPA air
+/// cleaners in place: 0.10 (winter) and 0.19 (summer). Sootsayer shows the span
+/// between the winter and summer means as a range; it is not a 95% interval.
+pub const FINF_NO_CLEANER: (f64, f64) = (0.27, 0.61);
+pub const FINF_HEPA: (f64, f64) = (0.10, 0.19);
+pub const INDOOR_SOURCE: &str = "Barn et al. 2008, J Expo Sci Environ Epidemiol 18:503-511: indoor/outdoor PM2.5 during forest fire and wood smoke in British Columbia homes. Mean infiltration 0.27 (winter) to 0.61 (summer) without HEPA air cleaners, 0.10 to 0.19 with them. Range = winter-to-summer means, not a 95% interval; open clinic windows can let in more smoke.";
+
+/// Clean air delivery rate of a Corsi-Rosenthal box (four MERV-13 filters and
+/// a 20-inch box fan) in a US EPA chamber test with simulated wildfire smoke:
+/// the single-filter box fan gave 111.2 cfm and the CR box design 261% more,
+/// i.e. 111.2 x 3.61 = 401.4 cfm = 682 m3/h (Holder AL, Halliday HS,
+/// Virtaranta L. Indoor Air 2022;32(11):e13163, abstract; 1 cfm = 1.699 m3/h).
+/// Home builds vary with the fan and filters, and smoke-loaded filters lose
+/// much of their CADR.
+pub const CR_BOX_CADR_M3H: f64 = 682.0;
+pub const CR_BOX_SOURCE: &str = "Holder et al. 2022, Indoor Air 32:e13163 (US EPA chamber test, simulated wildfire smoke): Corsi-Rosenthal box with four MERV-13 filters, 401 cfm = 682 m3/h. Your build can differ; change filters often during smoke.";
+
 /// Limits the UI must show next to the numbers (product house rule 3).
-pub const LIMITS: [&str; 4] = [
+pub const LIMITS: [&str; 5] = [
     "One study: six puskesmas in Palangka Raya and Pulang Pisau, 2015-2019.",
     "The effect was clear in Pulang Pisau (kabupaten) and absent in Palangka Raya city (kota); the authors call the overall result inconclusive.",
+    "Outside Central Kalimantan the study's estimates are applied by analogy: other Kalimantan provinces and Sumatra were not part of the study.",
     "Relative risks are cumulative over lag 0-5 days and are applied as daily multipliers, which is exact only for sustained haze.",
     "Smoke values are model estimates (CAMS, about 45 km grid), not station measurements.",
+];
+
+/// The same limits in Bahasa Indonesia, item for item.
+pub const LIMITS_ID: [&str; 5] = [
+    "Satu studi: enam puskesmas di Palangka Raya dan Pulang Pisau, 2015-2019.",
+    "Efeknya jelas di Pulang Pisau (kabupaten) dan tidak ada di Kota Palangka Raya (kota); penulis menyebut hasil keseluruhannya belum konklusif.",
+    "Di luar Kalimantan Tengah, angka studi dipakai dengan analogi: provinsi Kalimantan lain dan Sumatra tidak diteliti.",
+    "Risiko relatif adalah kumulatif lag 0-5 hari dan dipakai sebagai pengali harian; ini tepat hanya untuk kabut yang berlangsung terus.",
+    "Nilai asap adalah perkiraan model (CAMS, grid sekitar 45 km), bukan pengukuran stasiun.",
 ];
 
 #[cfg(test)]
