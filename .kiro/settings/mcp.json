@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "sootsayer": {
+      "command": "uv",
+      "args": ["run", "--project", "mcp-server", "python", "mcp-server/server.py"],
+      "disabled": false,
+      "autoApprove": ["list_districts", "priority", "haze_outlook", "clinic_plan"]
+    }
+  }
+}

@@ -12,8 +12,8 @@
 4. **Data pipeline** (`pipeline/`): Python 3.12 with uv. Builds the static
    reference data (district boundaries, puskesmas) and the replay snapshot of
    the October 2026 haze peak.
-5. **MCP server** (`mcp/`): Python FastMCP. Exposes the outlook to agents by
-   calling the engine CLI.
+5. **MCP server** (`mcp-server/`): MCP Python SDK v2 (`MCPServer`, formerly
+   FastMCP). Exposes the outlook to agents by calling the engine CLI.
 
 ## Data sources (all open; attribution is shown in the app)
 | Layer | Source | Access | License |
@@ -44,25 +44,32 @@
 
 ## Common commands
 ```powershell
-# Engine: tests (unit + property-based) and CLI
+# Engine: tests (unit + property-based), then WASM + CLI + parity in one go
 cargo test --manifest-path engine/Cargo.toml
-cargo run --manifest-path engine/Cargo.toml --bin sootsayer -- outlook --input <file.json>
+node web/scripts/engine-check.mjs
 
-# Engine -> WebAssembly (copied into web/src/wasm/)
-npm run wasm --prefix web
+# CLI by hand
+cargo run --release --manifest-path engine/Cargo.toml --bin sootsayer -- outlook --input <file.json> --pretty
 
-# Web app
+# Web app (dev server also serves api/*.ts through a Vite plugin)
 npm install --prefix web
-npm run dev --prefix web      # local dev server, proxies /api/* to the sources
+npm run dev --prefix web
 npm run build --prefix web
 
 # Data pipeline (reference data + replay snapshot)
-uv run --project pipeline python -m pipeline.build_reference
-uv run --project pipeline python -m pipeline.build_replay
+uv run --project pipeline python -m sootsayer_pipeline.build_reference
+uv run --project pipeline python -m sootsayer_pipeline.build_replay
 
-# MCP server
-uv run --project mcp python mcp/server.py
+# MCP server (stdio)
+uv run --project mcp-server python mcp-server/server.py
 ```
+
+## Fair use of free APIs
+- Open-Meteo free tier: 600 calls/min, 10,000/day, non-commercial. One
+  `/api/air` refresh asks for 368 locations; keep the edge cache on and do not
+  loop requests while testing (a 429 shows up as a named CAMS failure).
+- FIRMS NRT CSVs need no key; the area API (replay fires) needs a free MAP_KEY
+  in `FIRMS_MAP_KEY`, never committed.
 
 ## Rules of thumb
 - Units live in field names: `pm10_ugm3`, `pm25_ugm3`, `visits_per_day`.

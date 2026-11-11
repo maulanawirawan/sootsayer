@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Engine check on save",
+      "trigger": "PostFileSave",
+      "description": "When a Rust engine file is saved: run unit and property-based tests, rebuild the WebAssembly module, rebuild the CLI, and confirm CLI and WASM give byte-identical output.",
+      "matcher": "(^|[\\\\/])engine[\\\\/].*\\.rs$",
+      "action": {
+        "type": "command",
+        "command": "node web/scripts/engine-check.mjs",
+        "timeout": 600
+      }
+    }
+  ]
+}

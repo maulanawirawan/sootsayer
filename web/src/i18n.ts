@@ -38,6 +38,8 @@ const STRINGS = {
     en: 'No haze days in this window. Open “Replay Oct 2026” to see the peak of the smoke episode.',
   },
   pkmShort: { id: 'pkm', en: 'clinics' },
+  hazeDaysShort: { id: '{n}× hari kabut', en: '{n} haze days' },
+  fireHazeDaysShort: { id: '{n}× kabut berapi', en: '{n} with local fires' },
   layerImagery: { id: 'Citra NASA', en: 'NASA image' },
   layerSmoke: { id: 'Asap', en: 'Smoke' },
   layerFires: { id: 'Api', en: 'Fires' },

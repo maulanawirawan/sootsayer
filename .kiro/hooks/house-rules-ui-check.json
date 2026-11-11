@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "House rules UI check",
+      "trigger": "PostFileSave",
+      "description": "Reviews UI edits against Sootsayer's product house rules.",
+      "matcher": "(^|[\\\\/])web[\\\\/]src[\\\\/].*\\.ts$",
+      "action": {
+        "type": "agent",
+        "prompt": "A web UI file was just saved. Check the change against the house rules in .kiro/steering/product.md, without editing anything: (1) real data only, no mock, sample, or hard-coded outlook numbers; (2) every estimate shown to users carries its 95% range and a source; (3) the method limits stay visible next to the numbers; (4) a failed or stale source is named on screen and its data is never shown as current; (5) user-facing text lives in web/src/i18n.ts with Bahasa Indonesia and English. Reply with one line \"PASS\" or a short list of concrete problems with file and line."
+      }
+    }
+  ]
+}

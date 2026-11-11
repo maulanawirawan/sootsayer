@@ -1,53 +1,42 @@
-# crosscheck — business model
+# Sootsayer — who it is for and how it can sustain itself
 
-## The one-liner
+## The problem, in money and lives
 
-AI agents generate everything and verify almost nothing. crosscheck is the
-quality layer that checks their output and stamps what is trustworthy —
-offered as a service other agents and teams can call.
+Haze seasons repeat. In 2026, health offices in Kalimantan and Sumatra had to
+decide where to send staff, masks, oxygen, and nebulisers while the smoke was
+already there. Every day of lead time lets a puskesmas extend hours, call in
+staff, prepare a clean-air room, and ask the province for oxygen before the
+queue forms.
 
-## Who pays, and for what
+## Users and buyers
 
-| Buyer | Pain | What they pay for |
-|-------|------|-------------------|
-| Agent builders / AI platforms | Their agents emit reports nobody can trust | A hosted MCP endpoint that verifies findings and returns receipts, billed per verified report |
-| Data & platform teams | Drowning in noisy automated alerts | Shared rules, a team dashboard, and an audit trail of receipts |
-| Individual developers / OSS | Want a quick sanity check locally | The free, open-source CLI |
+| Who | What they get | Who pays |
+|---|---|---|
+| Dinas Kesehatan (district and province) | Five-day outlook per district and puskesmas, priority list for posko and rumah oksigen | Free open-source app; paid setup and support for an official instance |
+| Puskesmas heads | Expected visits for their own puskesmas, clean-air room sizing | Free |
+| Kemenkes crisis centre, BNPB, BPBD | Province-wide picture across Kalimantan and Sumatra, agent briefings via MCP | Government contract for hosting, SLA, and integration |
+| NGOs and donors (humanitarian groups running health posts) | Where to place mobile clinics and oxygen | Grants or sponsorship of the public instance |
+| Plantation and forestry companies with fire-prevention duties | Health impact around their concessions for CSR planning | Paid reports |
 
-## Tiers
+## Revenue options
 
-**Free — Local** (open source, MIT)
-- The Rust CLI + Python checker + Markdown reports
-- Local YAML rules and offline checks, unlimited
-- For individuals, OSS maintainers, and anyone trying it out
+1. **Open core.** The app, engine, and MCP server stay MIT-licensed and free.
+2. **Managed instance.** Hosting with a commercial Open-Meteo plan (its free
+   API is non-commercial), uptime guarantees, and data refresh.
+3. **Integration.** Import real puskesmas visit counts (from the health
+   office's own records) so baselines stop being study defaults, plus
+   WhatsApp or SMS alerts to puskesmas heads.
+4. **Validation and training.** Calibrate the relative risks with local 2026
+   visit data together with a university partner, then train district teams.
 
-**Pro — Verified**
-- Everything in Free, plus live public-source lookups and evidence receipts
-- The `verify` command to re-check any past report
-- Hosted MCP endpoint, higher volume
-- Billed per seat, or per batch of checks
+## Costs to run
 
-**Team / Platform**
-- Everything in Pro, plus shared rule sets, a team dashboard, and a searchable
-  history of receipts
-- SSO, priority sources, and a support SLA
-- Billed per organization
-
-**Usage-based MCP (for agent platforms)**
-- Embed crosscheck inside your own agent product
-- Pay per verified report, with volume pricing
-- The "trust stamp" as an API your agents call before they publish
-
-## Why now
-
-The cost of generating a report fell to almost zero; the cost of trusting one
-did not. Every new agent makes the pile bigger. crosscheck turns "here are 300
-maybes" into "here are 12 you can act on, each with a receipt" — and that gap
-is where the value, and the willingness to pay, lives.
+Static site plus two cached functions on Vercel. The main paid line at scale is
+the commercial weather and air-quality API; NASA FIRMS and GIBS are free.
 
 ## What makes it stick
 
-- **Rules and receipts compound:** every run adds to a team's shared rules and
-  receipt history, which makes the next run better and the tool harder to leave.
-- **Protocol-native:** shipping as an MCP tool means crosscheck sits inside
-  other agents' workflows by default, not as a separate dashboard nobody opens.
+- The numbers come with ranges and sources, which is what an official needs to
+  defend a decision.
+- Local baselines and validation make the outlook better every season.
+- MCP lets the outlook flow into the agents and reports offices already use.

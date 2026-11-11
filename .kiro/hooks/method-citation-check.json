@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Method citation check",
+      "trigger": "PostFileSave",
+      "description": "Keeps study numbers and their citations consistent between the engine and the method document.",
+      "matcher": "(^|[\\\\/])(engine[\\\\/]src[\\\\/]method\\.rs|docs[\\\\/]METHOD\\.md)$",
+      "action": {
+        "type": "agent",
+        "prompt": "A file with Sootsayer's study constants was just saved (engine/src/method.rs or docs/METHOD.md). Check, without editing anything: (1) every numeric constant in engine/src/method.rs has a citation in its comment (study, table, or source); (2) docs/METHOD.md shows the same relative-risk table, thresholds, and default baselines as method.rs, value for value; (3) every interval satisfies low <= point <= high and the point is within 3% of sqrt(low*high); (4) any deviation from the paper (such as the 74.4% vs 1.774 note) is explained in both files. Reply with one line \"PASS\" or a short list of mismatches with file and value."
+      }
+    }
+  ]
+}

@@ -1,33 +1,36 @@
-# crosscheck — 3-minute demo script
+# Sootsayer — 3-minute demo script
 
-Target: under 3 minutes, public YouTube. Written to also compete for the
-**Best Demo** bonus.
+Target: under 3 minutes, public YouTube, English voice or English subtitles.
+Record the real app (deployed URL or `npm run dev`) with OBS at 1080p.
+No third-party music or footage.
 
-**Setup before recording:** a terminal in the repo root, `sample-findings.json`
-open in one pane, and an MCP-capable agent connected to `mcp/server.py` in
-another.
+**Before recording:** open `/?mode=replay&date=2026-10-01` in one tab, and
+Kiro with the Sootsayer MCP server enabled in another window.
 
-| Time | On screen | What you say |
-|------|-----------|--------------|
-| 0:00–0:20 | Title card, then the messy findings file | "Every automated tool dumps a report like this — data-quality alerts, lint warnings, uptime checks. Most of it is noise or wrong, and nobody has time to check it. **crosscheck is the trust stamp for the agentic economy.**" |
-| 0:20–0:50 | Scroll `sample-findings.json` (5 items) | "Five findings. Some real, some noise, one even points at a public reference. A human would burn an hour sorting these." |
-| 0:50–1:30 | Run `crosscheck run sample-findings.json` | "The Rust core parses it instantly and prints a summary table. Then the Python checker goes item by item — checking each against public data sources and our local rules — and labels them: verified, needs-evidence, or likely false positive." |
-| 1:30–2:05 | Open `reports/report-*.md` | "Here is the report. Two sections only: **Backed by evidence** and **Needs a human**. The noise is gone. And every single line carries a receipt: what was checked, which source backed it, and a fingerprint." |
-| 2:05–2:40 | An AI agent calls crosscheck over MCP | "Now the real trick. An AI agent calls crosscheck over MCP before it publishes. It submits its findings, crosscheck drops the one it can't back up, and hands back receipts. Agents can verify each other now, automatically. A Kiro agent hook even re-checks the report the moment it is saved." |
-| 2:40–3:00 | Tamper one line, run `crosscheck verify` | **The money shot.** "Watch. I change one word in a verified line and re-check the report." *(run `crosscheck verify` — the receipt mismatch flags)* "Caught. Every line comes with a receipt you can re-check yourself. **AI writes everything now — crosscheck is how you trust it.**" |
+| Time | On screen | Say |
+|---|---|---|
+| 0:00–0:15 | Intro card over the globe | "Indonesia's 2026 haze season: more than four hundred thousand respiratory infections by November. Satellites saw the fires. Air apps saw the smoke. Nobody told the puskesmas who was coming." |
+| 0:15–0:30 | Press "Masuk ke Kalimantan"; the camera flies down to Borneo | "This is Sootsayer, the soot-sayer for community clinics. Everything here is real open data: NASA's satellite photo of that day, terrain, fire detections, and the Copernicus smoke model." |
+| 0:30–1:00 | Press Play on the timeline (1 → 15 Oct); smoke thickens, districts turn orange, pillars rise | "Each day, every district is classified with the definitions of a puskesmas study from Central Kalimantan. Haze day, fire-haze day, and how many days in a row. The pillars are puskesmas: their height is expected respiratory visits." |
+| 1:00–1:25 | Pause on 15 Oct; point at the priority list | "Here is what a health office needs: where to open posko and rumah oksigen first. Ranked by the expected change in visits, so districts with no puskesmas on the map still count." |
+| 1:25–1:55 | Click Pulang Pisau; show +83% (+32% … +154%), the chart, the limits | "Pulang Pisau: twenty-nine days of haze, plus eighty-three percent respiratory visits, with a range from thirty-two to one hundred fifty-four. Never one number without its range and its source, and the study's limits are right here." |
+| 1:55–2:20 | Click a puskesmas pillar; edit the baseline; fill the clean-air room form | "A puskesmas head types in their own usual visits, and gets a clean-air room plan: this waiting room needs three purifiers of three hundred cubic metres per hour." |
+| 2:20–2:45 | Switch to Kiro; ask the agent "Which districts should get rumah oksigen first, and how sure are we?" The agent calls `priority` and `haze_outlook` | "The same Rust engine runs in the browser as WebAssembly and here as an MCP tool, with byte-identical numbers. An agent can draft the briefing for the health office." |
+| 2:45–3:00 | Back to the globe, switch to Live (today) | "Live, it does this every day for the next five days. Sootsayer: from the fire pixel to the clinic queue." |
 
-## The single most memorable moment
+## Moments that must land
 
-The live `verify` catching a tampered line at 2:40. It proves the receipts are
-real, not decoration — the whole promise, "evidence, or it's not in the
-report," made tangible in five seconds.
+1. The fly-in from the globe to Borneo (first 30 seconds).
+2. Play: smoke spreading and pillars rising over 15 days.
+3. "+83% (+32% … +154%)" with the limits visible: honesty as a feature.
+4. Kiro calling the MCP tool and getting the same numbers.
 
-## Notes for the write-up and bonus prizes
+## Kiro write-up checklist
 
-- **Built-with-Kiro write-up:** walk through the `.kiro/specs/report-pipeline/`
-  spec, the steering docs, the `report-lint` hook firing on save, and the MCP
-  server. Judges score "implementation of Kiro" directly, so show each one.
-- **Bonus Blog:** the same story — "the missing quality layer for the agentic
-  economy" — makes a strong post; link the demo video and the repo.
-- **Social Blitz:** lead every clip with the one-liner and the tampered-line
-  reveal.
+- Spec: requirements → design → tasks in `.kiro/specs/haze-clinic-outlook/`,
+  and the two design changes found during the build.
+- Steering: house rules that shaped the UI (ranges, limits, named failures).
+- Hooks: engine check on save (tests, WASM, CLI, parity), citation check, UI
+  house-rules check.
+- Property-based testing: the five proptest invariants.
+- MCP: the Sootsayer server and the question asked in the video.

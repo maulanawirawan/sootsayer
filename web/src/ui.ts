@@ -96,7 +96,7 @@ export function renderPriority(out: OutlookOutput, onPick: (code: string) => voi
         <span class="rank">${p.rank}</span>
         <span class="name">${esc(p.district_name)}</span>
         <span class="value">${rangeText(p.mean_change as Range, 'percent')}</span>
-        <span class="meta">${p.haze_days}× ${esc(t('status_haze').toLowerCase())}${p.fire_haze_days ? `, ${p.fire_haze_days}× 🔥` : ''} · ${p.puskesmas_count} ${esc(t('pkmShort'))}</span>
+        <span class="meta">${esc(t('hazeDaysShort', { n: p.haze_days }))}${p.fire_haze_days ? `, ${esc(t('fireHazeDaysShort', { n: p.fire_haze_days }))}` : ''} · ${p.puskesmas_count} ${esc(t('pkmShort'))}</span>
       </button></li>`,
     )
     .join('');
