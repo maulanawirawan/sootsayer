@@ -1,0 +1,10 @@
+# Vercel only needs web/ (with the prebuilt engine.wasm), api/, and the configs.
+engine/
+pipeline/
+mcp-server/
+docs/
+**/node_modules
+web/dist
+**/.venv
+**/__pycache__
+*.pyc

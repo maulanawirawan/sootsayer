@@ -2,6 +2,9 @@
 
 **Peramal jelaga untuk puskesmas.** The soot-sayer for community clinics.
 
+**Live app: [sootsayer.vercel.app](https://sootsayer.vercel.app)** ·
+[October 2026 replay, Pulang Pisau](https://sootsayer.vercel.app/?mode=replay&date=2026-10-15&district=KT-pulang-pisau)
+
 Satellites already see the fires, and air-quality apps already show the smoke.
 Nobody tells the puskesmas who is coming. Sootsayer forecasts where wildfire
 smoke will settle over Kalimantan in the next five days and turns it into an
@@ -101,8 +104,11 @@ uv run --project mcp-server python mcp-server/server.py
 
 ## Deploy
 
+Production runs on Vercel at [sootsayer.vercel.app](https://sootsayer.vercel.app).
 `vercel.json` builds `web/` and deploys `api/air.ts` and `api/fires.ts` as
-functions. No secrets are needed for the live view.
+functions; `.vercelignore` keeps the engine, pipeline, and MCP folders out of
+the upload (the browser uses the prebuilt `web/src/wasm/sootsayer_engine.wasm`).
+No secrets are needed for the live view.
 
 ## Built with Kiro
 
