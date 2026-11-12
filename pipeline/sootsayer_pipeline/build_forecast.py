@@ -95,7 +95,7 @@ def wait_for(remote, t0: float, tag: str) -> str:
         if time.time() - t0 > MAX_WAIT_S:
             raise SystemExit(f"[{tag}] ADS job {remote.request_id} still {status} after {MAX_WAIT_S // 3600} h; "
                              f"rerun with --job {remote.request_id} to keep waiting for it")
-        time.sleep(20)
+        time.sleep(60)  # gentle polling; the Data Stores flag aggressive clients
     return status
 
 
@@ -142,17 +142,16 @@ def download(grids: list[dict], job: str | None = None) -> list[Path]:
         }
         cost = client.estimate_costs(DATASET, request)
         print(f"[{tag}] {d0}..{d1}: cost {cost.get('cost')} of {cost.get('limit')}", flush=True)
-        while True:
-            remote = client.submit(DATASET, request)
-            print(f"[{tag}] submitted {d0}..{d1} as {remote.request_id}", flush=True)
-            status = wait_for(remote, t0, tag)
-            if status == "successful":
-                break
-            if status == "rejected" and time.time() - t0 < MAX_WAIT_S:
-                print(f"[{tag}]   rejected (another request of ours is queued); retrying in 2 min", flush=True)
-                time.sleep(120)
-                continue
-            raise SystemExit(f"[{tag}] ADS job {remote.request_id} ended as {status}")
+        # One submission, never an automatic resubmission: since October 2026
+        # the Data Stores may suspend accounts that resubmit repeatedly or send
+        # requests in parallel (ECMWF forum, "Data Stores Service protection
+        # measures", 22 Oct 2026). A rejected or failed job stops the build.
+        remote = client.submit(DATASET, request)
+        print(f"[{tag}] submitted {d0}..{d1} as {remote.request_id}", flush=True)
+        status = wait_for(remote, t0, tag)
+        if status != "successful":
+            raise SystemExit(f"[{tag}] ADS job {remote.request_id} ended as {status}; not resubmitting. "
+                             f"Check it on the ADS 'Your requests' page, then rerun (or use --job).")
         remote.download(str(target))
         print(f"[{tag}] {target.name}: {target.stat().st_size // 1024} kB after {time.time() - t0:.0f} s", flush=True)
     return targets
