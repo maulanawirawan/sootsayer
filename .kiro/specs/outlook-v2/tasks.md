@@ -47,8 +47,23 @@
   - _Requirements: 1.2_
 
 - [ ] 9. Owner actions (not doable by the agent)
-  - Add `list_regions` and `daily_brief` to `autoApprove` in
+  - [x] Add `list_regions` and `daily_brief` to `autoApprove` in
     `.kiro/settings/mcp.json` (agent writes to that folder are blocked).
-  - Approve the push to `main` (it deploys production).
-  - Optional: Copernicus ADS account and key for a forecast-as-issued replay.
-  - Optional: install Kiro Crew and schedule the morning briefing.
+  - [x] Approve the push to `main` (it deploys production).
+  - [x] Copernicus ADS account and key (the CC-BY licence was already accepted).
+  - [ ] Add `forecast_check` to `autoApprove`.
+  - [ ] Kiro Crew is installed; schedule the morning briefing.
+
+- [ ] 10. Replay as forecast and the forecast check
+  - [x] Engine: `check.rs`, CLI `forecast-check`, `ss_forecast_check`,
+    `BriefMode::Forecast`, unit and property tests.
+  - [x] Pipeline: `build_forecast.py` (one ADS request for both regions,
+    cached), `ads` extra, forecast entry in `regions.json`; `district_pm10`
+    sums like the web.
+  - [x] Web: view switch, `asForecast`, run banner, check card,
+    `view=forecast` in the URL, ADS credit in the footer.
+  - [x] MCP: `mode="forecast"` and `forecast_check`.
+  - [x] Parity: forecast check WASM == CLI == the pipeline's table.
+  - [ ] Build both regions from the ADS download, test in the browser, and
+    add the check results to METHOD.md and README.
+  - _Requirements: 7.1–7.5_

@@ -168,12 +168,69 @@ the method source, the five limits above, and the line that it is not medical
 advice. The MCP tool `daily_brief` returns the same bytes, so an agent (for
 example a Kiro Crew job each morning) forwards text it did not write.
 
+## Replay as forecast, and the forecast check
+
+The October 2026 replay has two views:
+
+- **What happened (hindsight):** archived CAMS data via Open-Meteo, the
+  model's estimate once each day was over.
+- **What was forecast:** for a window that starts on day D, the CAMS global
+  forecast a health office could have read at 06:00 WIB on D. That is the run
+  of 12:00 UTC on D−1, which CAMS delivers before 22:00 UTC
+  ([ECMWF Newsletter 148](https://www.ecmwf.int/en/newsletter/148/news/atmospheric-composition-forecasts-move-higher-resolution)),
+  so before 05:00 WIB. The days before D keep the hindsight data and their
+  fire counts, because they were known by that morning. The five window days
+  take the forecast and have no fire data, exactly as in live mode.
+
+The forecast runs come from the Copernicus Atmosphere Data Store (dataset
+`cams-global-atmospheric-composition-forecasts`, DOI
+[10.24381/04a0b097](https://doi.org/10.24381/04a0b097)). Daily means use
+UTC+7 days and the hourly forecast steps:
+
+| Day | Lead hours of the 12:00 UTC run | Hours |
+|---|---|---|
+| D | 5–28 | 24 |
+| D+1 | 29–52 | 24 |
+| D+2 | 53–76 | 24 |
+| D+3 | 77–100 | 24 |
+| D+4 | 101–120 | 20 (00:00–19:59 WIB; the run ends at 120 h) |
+
+A day needs at least 4 hourly values, the same rule as the live daily means.
+
+**Which grid points.** CAMS points lie at multiples of 0.4°. Sumatra's cell
+centres coincide with them. Kalimantan's cell centres lie halfway between two
+points in longitude, so a Kalimantan cell takes the mean of the points 0.2°
+west and east. At identical points the Data Store and Open-Meteo give the same
+values (ratio 1.000 in a test on 13 October 2026). For the same Kalimantan
+cells, Open-Meteo returned the east point for 294 of 594 cells, the west point
+for 65, and neither for 235. So for Kalimantan part of the first-day
+difference between the two views comes from the choice of points, not from
+the forecast.
+
+**The check.** For every window morning D (1–31 October 2026) and lead day k
+(0–4), each district's forecast daily PM10 for D+k is compared with its
+hindsight daily PM10, both as district means over the same cells, with the
+haze-day rule above (≥ 100 µg/m³). The engine (`engine/src/check.rs`) counts
+hits (haze in both), misses (haze only in hindsight), false alarms (haze only
+in the forecast), and correct negatives, and gives
+POD = hits ÷ (hits + misses) and FAR = false alarms ÷ (hits + false alarms).
+Pairs without a value on either side are counted as missing, never guessed;
+days after 31 October have no hindsight data.
+
+**What it measures.** Agreement between the morning forecast and the model's
+own later estimate. Both sides are CAMS, so this is not a validation against
+measured air quality, and it says nothing about the visit estimates.
+
 ## Verification in this repo
 
-- 28 unit tests and 7 property-based tests (proptest) in `engine/`: range
+- 31 unit tests and 8 property-based tests (proptest) in `engine/`: range
   ordering, clear-day identity, monotonic duration effect, purifier coverage,
-  determinism, indoor estimates ordered and lower with a cleaner, and every
-  briefing carrying its ranges, limits, and disclaimer.
+  determinism, indoor estimates ordered and lower with a cleaner, every
+  briefing carrying its ranges, limits, and disclaimer, and a forecast check
+  that counts every pair once (swapping forecast and hindsight swaps misses
+  and false alarms, nothing else).
 - `node web/scripts/check-parity.mjs` runs a real October input of every
   region through the WebAssembly module and the native CLI, for the outlook
   and for the briefing in both languages, and requires byte-identical output.
+  For the forecast check it also requires the table built in the browser's
+  way (JavaScript) to equal the one the Python pipeline stored.

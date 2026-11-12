@@ -7,9 +7,9 @@ pipeline (Region packs) ──> web/public/data/<region>/ ──┐
    REGIONS = {kalimantan, sumatra}    regions.json       ├─> web app: region switch, briefing, CSV, waiting room, tour, night
                                       api/_grid.ts ──────┤
                                                          └─> api/air?region=…  api/fires?region=…
-engine (Rust) ── outlook · fire-counts · locate · clean-air (+indoor) · brief
+engine (Rust) ── outlook · fire-counts · locate · clean-air (+indoor) · brief · forecast-check
    │  same bytes via WASM (browser) and CLI (MCP)
-   └─> mcp-server: list_regions · list_districts · priority · haze_outlook · clinic_plan · daily_brief
+   └─> mcp-server: list_regions · list_districts · priority · haze_outlook · clinic_plan · daily_brief · forecast_check
             └─> Kiro (custom agent sootsayer-briefer, power-sootsayer) · Kiro Crew (scheduled job)
 ```
 
@@ -72,7 +72,8 @@ messages are i18n keys.
 ### D6. Presentation mode drives the real app
 `web/src/tour.ts` calls the same functions as the buttons (region, mode, date,
 district, puskesmas, briefing). Captions are i18n strings; the one statistic
-(401,586 ISPA cases) names Kemenkes and its date. Space pauses, → skips, Esc
+(at least 425,167 ISPA cases, 20 August – 5 November) names Kemenkes and its
+period. Space pauses, → skips, Esc
 ends, `pace` scales the timing.
 
 ### D7. Night imagery
@@ -100,14 +101,54 @@ date. A map `error` listener now names the failing source.
 - Kiro Crew: no code; a scheduled Crew job calls `daily_brief` and posts the
   text to Telegram (documented, not tested here).
 
+### D10. The replay as forecast, and the forecast check
+`pipeline/sootsayer_pipeline/build_forecast.py` fetches the CAMS global
+forecast runs from the Atmosphere Data Store (`ecmwf-datastores-client`,
+optional `ads` extra, `ADS_API_KEY` in `.env`) and writes
+`<region>/replay-2026-10-forecast.json`: daily means per window morning, lead
+day, and cell, plus the forecast check.
+
+- Run: 12:00 UTC on D−1, delivered before 22:00 UTC (05:00 WIB), so it was on
+  the table for a 06:00 WIB briefing on D. D = lead 5–28 h, …, D+4 = lead
+  101–120 h (20 hours). Rejected: the 00:00 UTC run of D (delivered in the
+  afternoon), and the 00:00 UTC run of D−1 (D+4 would have only 8 hours).
+- Cells: CAMS points lie at multiples of 0.4°. Sumatra cells sit on them;
+  Kalimantan cells sit 0.2° between two points in longitude and take their
+  mean. At identical points ADS and Open-Meteo agree (ratio 1.000), so no
+  rescaling is applied; Open-Meteo picks one nearby point for a Kalimantan
+  cell, which explains part of the first-day difference.
+- One request for both regions (the union box): 7,192 of the 10,000 fields
+  allowed. Parallel requests are rejected while one is queued, so the builder
+  sends one at a time and waits.
+- Check: `engine/src/check.rs` (`forecast-check` in the CLI,
+  `ss_forecast_check` in WASM) counts hits, misses, false alarms, correct
+  negatives, POD, and FAR per lead day from (lead, forecast, hindsight)
+  district PM10 pairs. The pipeline builds the pairs in Python;
+  `check-parity.mjs` rebuilds them in JavaScript and requires the same table.
+  `district_pm10` sums left to right like the web, not with `sum()` (Python
+  3.12 compensates, which can differ in the last bit).
+- Web: a "What happened / What was forecast" switch in replay mode
+  (`view=forecast` in the URL), `asForecast()` swaps the window days, a banner
+  names the run, the check card sits under the priority list, and the briefing
+  mode line says "as forecast". A failed load falls back to hindsight with the
+  source named.
+- MCP: `mode="forecast"` in `priority`, `haze_outlook`, `clinic_plan`,
+  `daily_brief`; a `forecast_check` tool returns the stored table and source.
+- Rejected: Open-Meteo's `pm10_previous_dayN` variables (no values for the
+  CAMS domain).
+
 ## Testing
 
-- Engine: 28 unit tests (briefing content, clear windows, refused metadata,
+- Engine: 31 unit tests (briefing content, clear windows, refused metadata,
   percent rounding equal to the web, date spans, indoor estimate, CR preset,
-  locate inside/snapped/outside) and 7 property tests (adds: indoor estimate
+  locate inside/snapped/outside, forecast-check counts and refused input, the
+  "as forecast" briefing line) and 8 property tests (adds: indoor estimate
   ordered and lower with a cleaner; every briefing has its limits, disclaimer,
-  and a range on every ranked line; briefing deterministic).
-- Parity: outlook and briefing (id, en) for both regions, WASM == CLI.
+  and a range on every ranked line; briefing deterministic; the forecast check
+  counts every pair once and swapping forecast and hindsight swaps only misses
+  and false alarms).
+- Parity: outlook and briefing (id, en) for both regions, WASM == CLI; the
+  forecast check of both regions, WASM == CLI == the pipeline's stored table.
 - Browser (headless Chrome): both regions in replay, briefing panel, puskesmas
   panel with the CR preset and indoor table, night layer, phone width, intro,
   tour, CSV import with a semicolon file, decimal commas, a row without
@@ -126,6 +167,10 @@ date. A map `error` listener now names the failing source.
   the fifth limit; METHOD.md was rewritten to match `method.rs` value for value.
 - The command behind the `engine-check-on-save` hook (tests, WASM, CLI,
   parity) was run after each engine change.
-- Not verified: whether Kiro fires these PostFileSave hooks for edits the
-  agent makes itself. During this build the checks were run explicitly; a save
-  from the editor is the case the hooks are written for.
+- The hooks also fire on the agent's own edits (checked during D10). The
+  house-rules hook reviewed every agent edit to `web/src/*.ts` and flagged two
+  real problems, both fixed: an English source label that would have appeared
+  in the Indonesian briefing, and a failed forecast load that would have kept
+  the "What was forecast" label over hindsight data. An agent edit to
+  `engine/src/check.rs` rebuilt the WASM module and the CLI within 25 seconds
+  (file times), and an edit to `docs/METHOD.md` triggered the citation check.

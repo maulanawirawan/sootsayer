@@ -137,10 +137,36 @@ the MCP tools and keeps ranges, data times, failed sources, and limits.
 6.3. THE repository SHALL include a Kiro power (manifest, MCP config, skills)
 for the briefing and for adding a region.
 
+## Requirement 7 — What was forecast, and how right it was
+
+**User story:** As a Dinkes officer (or a judge), I want to see what the
+forecast said on each October morning and how often it was right, so that I
+know how much to trust a five-day outlook.
+
+7.1. WHEN the user selects "What was forecast" in replay mode, THE SYSTEM
+SHALL show, for the window that starts on the selected day, the CAMS global
+forecast that was available at 06:00 WIB that day (the 12:00 UTC run of the
+day before), with hindsight data for the earlier days and no fire data for the
+window days.
+
+7.2. THE SYSTEM SHALL name the run on screen and in the briefing ("Replay (as
+forecast)"), and credit the Atmosphere Data Store with its DOI and the
+Copernicus attribution.
+
+7.3. THE SYSTEM SHALL show a forecast check per lead day (first day to +4
+days): district haze days caught, missed, and raised falsely against the
+hindsight replay, computed by the engine, and say that hindsight is archived
+model data, not station measurements.
+
+7.4. IF the forecast file fails to load or the selected morning has no run,
+THEN THE SYSTEM SHALL name the source and show hindsight under the hindsight
+label, never under the forecast label.
+
+7.5. THE MCP server SHALL accept `mode="forecast"` in its outlook tools and
+offer `forecast_check`.
+
 ## Out of scope (for this spec)
 
-- Replaying the forecast as issued on each day (needs the CAMS forecast archive
-  from the Copernicus Atmosphere Data Store with the owner's account).
 - Provinces with little fire haze and other countries. All of Indonesia would
   need about 1,956 live cells, about 2,655 weighted Open-Meteo calls per
   refresh, more than the free tier's 600 per minute. Other countries also need

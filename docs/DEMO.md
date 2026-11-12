@@ -1,51 +1,77 @@
-# Sootsayer — 3-minute demo script
+# Sootsayer: the demo video
 
-Target: under 3 minutes, public YouTube, English voice or English subtitles.
-Record the real app (deployed URL or `npm run dev`) with OBS at 1080p.
-Music only with a license that allows publishing on YouTube (keep the
-license text with the project). No third-party logos or footage on screen.
+The demo video is code. `video/` renders it with Remotion and three.js from
+real data and real recordings of the app, with an original synthesised score
+(how it is built: [video/README.md](../video/README.md)). No voice and no
+narrator: every shot carries one English subtitle with one ember word and one
+source line, in the margin under the footage. For every element being
+explained, the camera pushes in on the recording and a charcoal ring is drawn
+around it.
 
-**Before recording**
-- Tab 1: `/?region=kalimantan&mode=replay&date=2026-10-01&lang=en`.
-- Kiro with the Sootsayer MCP server connected (reconnect it after pulling:
-  it has new tools), or the custom agent `sootsayer-briefer`.
-- Optional hands-free take for B-roll: `/?tour=1&lang=en` (Space pauses,
-  → skips, Esc ends; `&pace=1.5` is slower).
+Length 2:39 (under the 3-minute limit), 1920×1080, 30 fps, H.264 + AAC.
 
-| Time | On screen | Say |
-|---|---|---|
-| 0:00–0:15 | Intro card over the globe | "Indonesia's 2026 haze season: by 2 November, the health ministry counted 401,586 respiratory infections linked to fires in seven provinces. Satellites saw the fires. Air apps saw the smoke. Nobody told the puskesmas who was coming." |
-| 0:15–0:30 | Press "Fly to Kalimantan"; the camera flies down to Borneo | "This is Sootsayer, the soot-sayer for community clinics. Everything is real open data: NASA's satellite photo of that day, fire detections, terrain, and the Copernicus smoke model." |
-| 0:30–0:55 | Press Play (1 → 14 Oct); smoke thickens, districts turn orange, pillars rise | "Every district-day is classified with the definitions of a puskesmas study from Central Kalimantan: haze day, fire-haze day, and how many days in a row. Pillars are puskesmas; their height is expected respiratory visits." |
-| 0:55–1:15 | Pause on 14 Oct; point at the priority list; click Pulang Pisau | "Where to open posko and oxygen houses first. Pulang Pisau: plus eighty-eight percent respiratory visits, with a range from fourteen to two hundred eleven. Never one number without its range, its source, and the study's limits right here." |
-| 1:15–1:40 | Click the Anjir Serapat pillar; press the Corsi–Rosenthal preset; show the indoor table | "A puskesmas head types in their usual visits and plans a clean-air waiting room: two do-it-yourself filter boxes from an EPA test, and how smoky the room gets with and without a cleaner, from measured smoke infiltration." |
-| 1:40–2:00 | Press "Briefing for the health office"; show the text; press Share on WhatsApp | "One button gives the health office a briefing it can send as is, in Bahasa Indonesia or English. The Rust engine writes it, not a language model, so no range and no limit gets lost." |
-| 2:00–2:15 | Press "Sumatra"; the camera flies to Riau, Jambi, South Sumatra on 7 Oct | "The same engine covers Sumatra's peatland provinces. Regions are just data: boundaries, puskesmas, a smoke grid." |
-| 2:15–2:45 | Switch to Kiro; ask "Give me today's haze briefing for Kalimantan in Indonesian". The agent calls `daily_brief` | "The same Rust engine runs in the browser as WebAssembly and here as an MCP tool, byte for byte. A Kiro Crew job can post this to the health office's Telegram every morning." |
-| 2:45–3:00 | Back to the globe, Live mode, night layer on | "Live, it does this every day for the next five days. Sootsayer: from the fire pixel to the clinic queue." |
+| # | Time | Shot | Subtitle (ember word in *italics*) |
+|---|---|---|---|
+| 1 | 0:00 | three.js: the map draws itself from Natural Earth coastlines and geoBoundaries district borders, to the sound of charcoal | Kalimantan, October 2026. |
+| 2 | 0:08 | the 9,766 NASA FIRMS detections of 14 Oct ignite as embers; the counter counts them | *9,766* satellite fire detections in one day. |
+| 3 | 0:14 | the page darkens; the CAMS PM2.5 of that day becomes hatching | *At least 425,167* respiratory infections from fire haze, 20 Aug – 5 Nov. |
+| 4 | 0:20 | 339 OpenStreetMap puskesmas appear as rings, over a heartbeat | Satellites see the fire. Air apps see the smoke. *Nobody tells the clinics who is coming.* |
+| 5 | 0:25 | the paper burns away from the fires and reveals the real app; one big hit | (the app's own title card) |
+| 6 | 0:30 | real app: fly-in from the globe to Kalimantan | A five-day haze outlook for *every district and clinic*. |
+| 7 | 0:40 | replay 1 → 14 Oct at 1.5×; the camera pushes onto the timeline, the day key, the pillars | Haze day: PM10 ≥ 100 µg/m³. With a satellite fire: *fire-haze day*. |
+| 8 | 0:53 | Pulang Pisau; push-in on the 5-day change (one hit), the run of fire-haze days, the method limits | Pulang Pisau: *+88%* respiratory visits expected (95% range +14% to +211%). |
+| 9 | 1:08 | Puskesmas Jabiren: visits, clean-air room with the Corsi–Rosenthal preset, indoor PM2.5 | Puskesmas Jabiren, 14 Oct: *4.7* respiratory visits a day expected (2.8 to 7.8). |
+| 10 | 1:22 | the briefing for the health office, in English; push-in on Share and on the first ranked line | One button: a briefing the health office can *send as is*. |
+| 11 | 1:33 | Sumatra | *Sumatra* too: Riau, Jambi, South Sumatra. |
+| 12 | 1:40 | chapter card "Built with Kiro" writes itself and burns away into the real spec | *Spec-driven*: requirements, design decisions, tasks. |
+| 13 | 1:51 | steering house rules, the hooks, and their real findings stamped CAUGHT BY HOOK → fixed | Steering sets the house rules. *Hooks* check every edit against them. |
+| 14 | 2:01 | the real `cargo test` and parity output | *Property-based tests*, and one engine everywhere. |
+| 15 | 2:09 | the MCP tools and a real `daily_brief` result | Kiro gets the *same engine* as MCP tools. |
+| 16 | 2:19 | the NASA night image of 14 Oct, slow orbit | The same night from space: *the fires and the cities*. |
+| 17 | 2:26 | live mode as recorded that day | Live: *the next five days*, every morning. |
+| 18 | 2:32 | end card: riser and hit, embers | Sootsayer — from the fire pixel to the clinic queue |
 
-## Moments that must land
+When the forecast replay data is built, a chapter "Can you trust it?" (the
+"What was forecast" view and its check card) joins after shot 11; the
+timeline keeps it optional, and the video stays under three minutes.
 
-1. The fly-in from the globe to Borneo (first 30 seconds).
-2. Play: smoke spreading and pillars rising over two weeks.
-3. "+88% (+14% … +211%)" with the limits visible: honesty as a feature.
-4. The briefing: one button, a text a health office can send.
-5. Kiro calling `daily_brief` and getting the same text.
+## Sound
+Original, synthesised in `video/scripts/score.py`; every cue is read from the
+timeline, so it lands on the picture.
+- Music: a low D drone, a dark pad that opens as the page darkens, a slow
+  pulse under the product, brighter chords for Kiro, the drone again at the end.
+- Effects only where the picture really does something: charcoal scratching
+  while the map and the words draw themselves, fire crackle in every burn, a
+  heartbeat under "who is coming?", a riser and a hit at the reveal, soft air
+  on the four real camera flights, a quiet click on each recorded click, one
+  hit on +88%, a slam and a burn on the chapter card, three stamps for the
+  hooks' catches, a riser and a hit on the title.
+- No bells, chimes, synth blips or per-cut stingers. The music ducks under
+  the five hits. One shared room (reverb). −16 LUFS integrated, −1.5 dBTP.
+
+## Checks against the rules
+- Under three minutes; shows the app working in a desktop browser.
+- English on screen throughout, including the briefing (the app also writes it
+  in Bahasa Indonesia).
+- No third-party trademarks or logos on screen, no stock footage, and no
+  copyrighted music.
+- Fonts under the SIL Open Font License; Remotion used under its free
+  license for individuals.
 
 ## Kiro write-up checklist
-
-- Specs: `haze-clinic-outlook` (v1) and `outlook-v2` (briefing, regions,
-  waiting room, CSV, tour, agents), with the design decisions and what was not
-  built and why.
+- Specs: `haze-clinic-outlook` (v1) and `outlook-v2`: 12 requirements, 48
+  EARS acceptance criteria, 10 design decisions, 22 tasks.
 - Steering: house rules that shaped the UI (ranges, limits, named failures).
-- Hooks: reviews with the house-rules and citation checklists found
-  English-only CSV errors, an English label in the Indonesian briefing, and
-  METHOD.md missing the new constants (all fixed). Before filming, save
-  `engine/src/method.rs` once in the editor to confirm the engine-check hook
-  really fires.
-- Property-based testing: seven proptest invariants, including "every
-  briefing carries its limits and a range on every ranked line".
-- MCP: six tools, including `daily_brief`.
+- Hooks: they fire on the agent's own edits too. The house-rules hook flagged
+  an English label inside the Indonesian briefing, a failed forecast load that
+  would have kept the forecast label over hindsight data, and a hard-coded
+  legend label outside i18n.ts; earlier reviews found English-only CSV errors
+  and METHOD.md missing new constants (all fixed). An agent edit to
+  `engine/src/check.rs` rebuilt the WASM module and the CLI through
+  `engine-check-on-save`.
+- Property-based testing: eight proptest invariants, including "every
+  briefing carries its limits and a range on every ranked line" and "the
+  forecast check counts every pair once".
+- MCP: seven tools, including `daily_brief` and `forecast_check`.
 - Custom agent: `.kiro/agents/sootsayer-briefer.md`.
 - Power: `power-sootsayer/` (MCP config and two skills).
-- Kiro Crew: scheduled morning briefing (see README).

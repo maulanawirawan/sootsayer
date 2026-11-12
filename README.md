@@ -25,8 +25,9 @@ built from open data.
 
 The 2026 haze season in Indonesia was severe:
 
-- Kemenkes counted [401,586 ISPA cases](https://go.kompas.com/read/2026/11/04/203113274/ministry-of-health-ispa-cases-due-to-forest-fires-reach-401586-in-7-provinces)
-  linked to forest and land fires in 7 provinces and 63 districts by 2 November.
+- Kemenkes counted [at least 425,167 cases of acute respiratory illness](https://www.thejakartapost.com/indonesia/2026/11/09/wildfire-haze-sickens-more-children-as-respiratory-cases-hit-400000)
+  from fire haze in 7 provinces of Kalimantan and Sumatra between 20 August
+  and 5 November (reported by The Jakarta Post on 9 November).
 - CREA estimated [3,560 deaths from fire smoke in September 2026 alone](https://energyandcleanair.org/indonesias-air-pollution-deaths-surged-by-42-in-september-as-government-resists-declaring-karhutla-a-national-emergency/).
 - The government set up [477 rumah oksigen](https://voi.id/en/news/599566) and emergency
   health posts and handed out 5.3 million masks. Those allocation decisions were
@@ -65,10 +66,17 @@ and a briefing to send to the puskesmas heads.
 - **Replay of October 2026** from archived CAMS smoke data and NASA FIRMS fire
   detections (156,658 over Kalimantan, 44,932 over Sumatra, 17 Sep – 31 Oct),
   labelled as hindsight.
+- **What was forecast, and how right it was.** The replay can also show each
+  October morning the way a health office saw it: the CAMS forecast that was
+  available at 06:00 WIB, from the Copernicus Atmosphere Data Store. A check
+  per lead day counts the district haze days that forecast caught, missed, or
+  raised falsely, compared with the hindsight data (model against model, not
+  against stations, and the app says so).
 - **Presentation mode** (`?tour=1`): a captioned walk through the real app.
 - **Agents can ask it.** An MCP server gives Kiro (or any MCP client) the same
   numbers and the same briefing: `list_regions`, `list_districts`, `priority`,
-  `haze_outlook`, `clinic_plan`, `daily_brief`.
+  `haze_outlook`, `clinic_plan`, `daily_brief`, `forecast_check` (the outlook
+  tools take `mode` `live`, `replay`, or `forecast`).
 - **Honest by design.** Every number shows its range and source, failed
   sources are named on screen, and the method's limits sit next to the
   numbers, including that outside Central Kalimantan the study is applied by
@@ -78,10 +86,10 @@ and a briefing to send to the puskesmas heads.
 
 | Part | Technology | Job |
 |---|---|---|
-| Engine | **Rust** (one crate, three faces: library, native CLI, **WebAssembly** with a hand-written C ABI) | Classification, duration, relative risk, expected visits, priority, fire-to-district assignment, point location, clean-air sizing, indoor PM2.5, briefing text |
+| Engine | **Rust** (one crate, three faces: library, native CLI, **WebAssembly** with a hand-written C ABI) | Classification, duration, relative risk, expected visits, priority, fire-to-district assignment, point location, clean-air sizing, indoor PM2.5, briefing text, forecast check |
 | Globe | **TypeScript + Vite + MapLibre GL JS v6** (WebGL2, globe projection, terrain) | The 3D view, timeline, panels, CSV, tour, Bahasa Indonesia and English |
 | Edge | **Vercel functions** | Cache and trim CAMS (Open-Meteo) and NASA FIRMS per region, which the browser cannot read directly |
-| Data | **Python + uv + Shapely** | Region packs: districts (geoBoundaries), puskesmas (OpenStreetMap), CAMS grid, October 2026 replay |
+| Data | **Python + uv + Shapely**, Copernicus **Atmosphere Data Store** client | Region packs: districts (geoBoundaries), puskesmas (OpenStreetMap), CAMS grid, October 2026 replay in hindsight and as forecast |
 | Agents | **MCP** (Python SDK v2), a **custom Kiro agent**, a **Kiro power** | The outlook and the briefing as tools, on the same Rust engine |
 
 The browser and the agent tool run the same Rust code. `web/scripts/check-parity.mjs`
@@ -112,17 +120,19 @@ npm run dev --prefix web             # http://localhost:5173 (serves api/*.ts to
 ```
 
 Useful links: `/?region=sumatra&mode=replay&date=2026-10-07`,
-`/?mode=replay&date=2026-10-15&district=KT-pulang-pisau`, `&brief=1` opens the
-briefing, `&night=1` the night image, `&lang=en`, `&intro=0` skips the intro,
+`/?mode=replay&date=2026-10-15&district=KT-pulang-pisau`, `&view=forecast`
+shows a replay day as forecast that morning, `&brief=1` opens the briefing,
+`&night=1` the night image, `&lang=en`, `&intro=0` skips the intro,
 `/?tour=1` plays the presentation.
 
 Engine and data:
 
 ```powershell
-cargo test --manifest-path engine/Cargo.toml          # 28 unit + 7 property-based tests
+cargo test --manifest-path engine/Cargo.toml          # 31 unit + 8 property-based tests
 node web/scripts/engine-check.mjs                      # tests, WASM, CLI, parity (every region)
 pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_reference              # every region
 pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_replay --region sumatra  # set FIRMS_MAP_KEY for fires
+uv run --project pipeline --extra ads python -m sootsayer_pipeline.build_forecast --region kalimantan --region sumatra  # set ADS_API_KEY
 ```
 
 MCP server (stdio), already registered for Kiro in `.kiro/settings/mcp.json`:
@@ -139,8 +149,21 @@ morning: add the Sootsayer MCP server in Crew's Integrations panel (or let
 Discover & Sync find it), then ask in chat: *"Every day at 06:00 WIB, call
 sootsayer `daily_brief` with region kalimantan, mode live, lang id, and post
 `text` exactly as written to our Telegram channel."* The text comes from the
-engine, so the job forwards numbers it did not write. (Not tested in this repo:
-Crew is not installed on the build machine.)
+engine, so the job forwards numbers it did not write. (Kiro Crew 0.12.1 is
+installed on the build machine, but this scheduled job has not been set up or
+tested yet.)
+
+## The demo video is code too
+
+`video/` renders the 2:39 demo with Remotion and three.js. The cold open draws
+the map from Natural Earth and geoBoundaries, ignites the 9,766 real NASA FIRMS
+detections of 14 October 2026 as embers, hatches the real CAMS smoke of that
+day, and burns the page away to reveal the real app. The product shots are the
+real app, recorded frame by frame on Playwright's paused clock so every camera
+move is smooth. The "Built with Kiro" shots typeset the real spec, hooks, test
+output and MCP output, and the score is synthesised in numpy. No stock footage,
+no assets, no recorded music. See [video/README.md](video/README.md) and
+[docs/DEMO.md](docs/DEMO.md).
 
 ## Deploy
 
@@ -154,7 +177,8 @@ out of the upload (the browser uses the prebuilt
 
 - **Spec-driven:** `.kiro/specs/haze-clinic-outlook/` (v1) and
   `.kiro/specs/outlook-v2/` (briefing, regions, waiting room, CSV, tour,
-  agents) hold the requirements (EARS), design decisions, and tasks. The
+  agents, replay as forecast) hold the requirements (EARS), design decisions,
+  and tasks. The
   designs changed when the build found facts: OpenStreetMap maps only part of
   the puskesmas, so ranking moved to relative change; Open-Meteo's per-minute
   limit, so live requests use land and coast cells, one region at a time; and
@@ -166,10 +190,12 @@ out of the upload (the browser uses the prebuilt
 - **Hooks:** `engine-check-on-save` runs tests, rebuilds WASM and CLI, and
   checks parity whenever engine code is saved; `method-citation-check` keeps
   study numbers and citations consistent; `house-rules-ui-check` reviews UI
-  edits against the steering. During v2, reviews with the UI hook's checklist
-  found English-only CSV errors and an English label inside the Indonesian
-  briefing, and the citation checklist found METHOD.md missing the new
-  constants.
+  edits against the steering. The hooks fire on the agent's own edits too.
+  While the forecast view was built, the UI hook flagged an English source
+  label that would have shown up inside the Indonesian briefing, and a failed
+  forecast load that would have kept the "What was forecast" label over
+  hindsight data; both were fixed. Earlier reviews with the same checklists
+  found English-only CSV errors and METHOD.md missing new constants.
 - **Property-based testing:** proptest guards the engine's invariants,
   including that every briefing carries its limits, its disclaimer, and a range
   on every ranked line.

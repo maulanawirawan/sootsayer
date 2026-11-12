@@ -10,6 +10,7 @@ sootsayer/
 │  │  ├─ model.rs             # input/output types (serde)
 │  │  ├─ outlook.rs           # validation, classification, duration, visits, priority
 │  │  ├─ brief.rs             # briefing text for health offices (id/en), deterministic
+│  │  ├─ check.rs             # forecast check: haze days caught/missed/false per lead day
 │  │  ├─ geo.rs               # point-in-polygon: fire counts per district per day, locate points
 │  │  ├─ plan.rs              # clean-air room sizing, indoor PM2.5, CADR presets
 │  │  ├─ dates.rs             # ISO dates, contiguity
@@ -20,8 +21,8 @@ sootsayer/
 │  ├─ index.html
 │  ├─ public/data/            # generated: regions.json + one folder per region
 │  │  ├─ regions.json         # index of regions (counts, replay availability)
-│  │  ├─ kalimantan/          # districts.geojson, puskesmas.json, grid.json,
-│  │  └─ sumatra/             #   reference-meta.json, replay-2026-10(.json, -fires.json)
+│  │  ├─ kalimantan/          # districts.geojson, puskesmas.json, grid.json, reference-meta.json,
+│  │  └─ sumatra/             #   replay-2026-10(.json, -fires.json, -forecast.json)
 │  ├─ scripts/                # build-wasm, check-parity (every region), engine-check
 │  └─ src/
 │     ├─ main.ts              # app state and wiring (region, mode, date, selection)
@@ -40,8 +41,8 @@ sootsayer/
 │  ├─ fires.ts                # FIRMS NRT CSV -> region JSON
 │  ├─ _shared.ts              # helpers incl. region parameter (not a route)
 │  └─ _grid.ts                # generated grids + live cell lists per region (not a route)
-├─ pipeline/                  # Python (uv): region packs, reference data, replay, shared clients
-├─ mcp-server/                # MCP server (MCP Python SDK v2): outlook + daily_brief
+├─ pipeline/                  # Python (uv): region packs, reference data, replay, forecast replay (ADS), shared clients
+├─ mcp-server/                # MCP server (MCP Python SDK v2): outlook, daily_brief, forecast_check
 ├─ power-sootsayer/           # Kiro power: plugin.json, mcp.json, skills/
 ├─ docs/                      # METHOD.md, DATA.md, DEMO.md, img/
 ├─ .kiro/
@@ -77,8 +78,8 @@ sootsayer/
 NASA FIRMS ──┐                                   ┌─> globe layers (fires, smoke, day/night imagery)
 CAMS (O-M) ──┼─> api/?region= (cache, daily) ────┤
              │                                   └─> engine.wasm ─> outlook, plan, brief ─> panels
-OSM, geoBoundaries ─> pipeline/ (REGIONS) ─> web/public/data/<region>/ ─┘
-                                   └─> mcp-server/ ─> engine CLI ─> agent answers, daily_brief
+OSM, geoBoundaries, CAMS (ADS) ─> pipeline/ (REGIONS) ─> web/public/data/<region>/ ─┘
+                                   └─> mcp-server/ ─> engine CLI ─> agent answers, daily_brief, forecast_check
 ```
 
 ## Tracked on purpose

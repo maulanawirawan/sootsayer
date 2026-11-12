@@ -25,6 +25,7 @@
 | Layer | Source | Access | License |
 |---|---|---|---|
 | Smoke field (PM2.5, PM10) | Copernicus CAMS global, 0.4° (~45 km), 3-hourly, 5-day forecast, archive since Aug 2022, via Open-Meteo Air Quality API | no key, CORS ok | CC BY 4.0; free for non-commercial use |
+| Smoke as forecast (replay) | CAMS global atmospheric composition forecasts, Atmosphere Data Store (DOI 10.24381/04a0b097), 12:00 UTC runs, hourly leads | free account, `ADS_API_KEY`, build time only | CC BY 4.0 + "Contains modified Copernicus Atmosphere Monitoring Service information 2026" and the EC/ECMWF disclaimer |
 | Fire detections | NASA FIRMS VIIRS NOAA-20 NRT CSV (24h / 48h / 7d, Southeast Asia) | no key, no CORS (proxy) | NASA open data |
 | Fire history (replay) | NASA FIRMS area API | free MAP_KEY | NASA open data |
 | Day imagery | NASA GIBS `VIIRS_NOAA20_CorrectedReflectance_TrueColor` and `MODIS_Terra_CorrectedReflectance_TrueColor`, EPSG:3857, up to z9 | no key, CORS ok | NASA open data |
@@ -67,6 +68,8 @@ npm run build --prefix web
 # Data pipeline (reference data for every region, replay per region)
 pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_reference [--region sumatra]
 pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_replay --region sumatra
+# Replay as forecast (Atmosphere Data Store, needs ADS_API_KEY; one cached request for both regions)
+uv run --project pipeline --extra ads python -m sootsayer_pipeline.build_forecast --region kalimantan --region sumatra
 
 # MCP server (stdio)
 uv run --project mcp-server python mcp-server/server.py
@@ -84,6 +87,10 @@ uv run --project mcp-server python mcp-server/server.py
   requests (45 days weigh ~321 calls each).
 - FIRMS NRT CSVs need no key; the area API (replay fires) needs a free MAP_KEY
   in `FIRMS_MAP_KEY`, never committed.
+- Atmosphere Data Store: at most 10,000 fields per request (the forecast
+  replay uses 7,192), and a new request is rejected while one of ours is
+  queued for the same dataset, so send one at a time and wait. The key lives in
+  `ADS_API_KEY`, never committed or printed.
 
 ## Rules of thumb
 - Units live in field names: `pm10_ugm3`, `pm25_ugm3`, `visits_per_day`.
