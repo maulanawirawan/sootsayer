@@ -1,0 +1,29 @@
+{
+  "name": "sootsayer-video",
+  "private": true,
+  "description": "The Sootsayer demo video, written as code: a three.js cold open drawn from real data, real app footage, captions, and an original synthesised score.",
+  "type": "module",
+  "scripts": {
+    "prepare-data": "node scripts/prepare-data.mjs",
+    "record": "node scripts/record-app.cjs",
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts Demo out/sootsayer-demo.mp4",
+    "still": "remotion still src/index.ts Demo"
+  },
+  "dependencies": {
+    "@react-three/fiber": "9.8.2",
+    "@remotion/cli": "4.0.543",
+    "@remotion/google-fonts": "^4.0.543",
+    "@remotion/three": "4.0.543",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "remotion": "4.0.543",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/three": "^0.187.0",
+    "playwright-core": "^1.65.0",
+    "typescript": "^5.9.0"
+  }
+}

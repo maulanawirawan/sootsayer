@@ -1,0 +1,74 @@
+{
+  "fps": 30,
+  "shots": [
+    { "id": "cold", "kind": "cold", "seconds": 30, "chapter": "The problem" },
+    {
+      "id": "flyin", "kind": "app", "clip": "globe-flyin", "from": 4.5, "seconds": 10, "chapter": "From the fire pixel to the clinic queue",
+      "captions": [
+        { "at": 2.7, "until": 6.1, "text": "A five-day haze outlook for every district and clinic.", "sub": "On a real 3D globe: NASA imagery · NASA FIRMS fires · Copernicus CAMS smoke · open data only" },
+        { "at": 6.3, "until": 9.9, "text": "Kalimantan: 56 districts, 339 mapped puskesmas.", "sub": "Districts: geoBoundaries · puskesmas: OpenStreetMap" }
+      ]
+    },
+    {
+      "id": "play", "kind": "app", "clip": "replay-play", "from": 0, "rate": 1.5, "seconds": 13.2,
+      "captions": [
+        { "at": 0.3, "until": 4.4, "text": "October 2026, replayed day by day.", "sub": "Smoke: Copernicus CAMS PM2.5 (archive) · fires: NASA FIRMS VIIRS NOAA-20" },
+        { "at": 4.6, "until": 9.0, "text": "Haze day: district PM10 ≥ 100 µg/m³. With a satellite fire: fire-haze day.", "sub": "Definitions from a puskesmas study in Central Kalimantan (Phung et al. 2025, Int J Epidemiol)", "ring": "legend" },
+        { "at": 9.2, "until": 13.1, "text": "Pillars: expected respiratory visits at each puskesmas.", "sub": "Taller = more visits · colour = change from a normal day" }
+      ]
+    },
+    {
+      "id": "district", "kind": "app", "clip": "district", "from": 0, "seconds": 12,
+      "captions": [
+        { "at": 0.2, "until": 3.3, "text": "Where should posko and oxygen houses open first?", "sub": "Districts ranked by the expected change in respiratory visits", "ring": "row" },
+        { "at": 3.5, "until": 7.6, "text": "Pulang Pisau: +88% respiratory visits expected.", "sub": "95% range +14% to +211% · mean over 14–18 Oct 2026", "ring": "kpiWindow", "punch": 1.32 },
+        { "at": 8.6, "until": 11.9, "text": "The study's limits stay next to the numbers.", "sub": "One study, six puskesmas, 2015–2019 · applied by analogy outside Central Kalimantan", "ring": "limits" }
+      ]
+    },
+    {
+      "id": "puskesmas", "kind": "app", "clip": "puskesmas", "from": 0, "seconds": 14,
+      "captions": [
+        { "at": 0.2, "until": 3.6, "text": "Click a pillar: one puskesmas.", "sub": "The camera glides in and leaves room for the panel" },
+        { "at": 3.8, "until": 8.0, "text": "Puskesmas Jabiren, 14 Oct: 4.7 respiratory visits a day expected.", "sub": "95% range 2.8 to 7.8 · usual 2.5 (study default, editable by the puskesmas)", "ring": "kpi", "punch": 1.3 },
+        { "at": 8.4, "until": 11.2, "text": "Plan a clean-air waiting room.", "sub": "Corsi–Rosenthal box preset from a US EPA test (Holder et al. 2022)", "ring": "cleanAir" },
+        { "at": 11.4, "until": 13.9, "text": "And how smoky the room gets, with and without a cleaner.", "sub": "Measured smoke infiltration (Barn et al. 2008) · not a 95% interval, and the app says so", "ring": "indoor" }
+      ]
+    },
+    {
+      "id": "briefing", "kind": "app", "clip": "briefing", "from": 0, "seconds": 10,
+      "captions": [
+        { "at": 0.2, "until": 4.8, "text": "One button: a briefing the health office can send as is.", "sub": "Bahasa Indonesia or English · copy, WhatsApp, download, print", "ring": "share" },
+        { "at": 5.1, "until": 9.9, "text": "Written by the Rust engine, not a language model.", "sub": "So no range, data time, failed source or limit gets lost" }
+      ]
+    },
+    {
+      "id": "sumatra", "kind": "app", "clip": "sumatra", "from": 0, "seconds": 7.5,
+      "captions": [
+        { "at": 0.3, "until": 7.4, "text": "Sumatra too: Riau, Jambi, South Sumatra.", "sub": "Regions are data packs: 40 more districts, the same engine" }
+      ]
+    },
+    { "id": "forecast", "kind": "app", "clip": "forecast-view", "from": 0, "seconds": 12, "optional": true, "chapter": "Can you trust it?",
+      "captions": [
+        { "at": 2.7, "until": 6.6, "text": "What did the forecast say at 06:00 that morning?", "sub": "The CAMS run available that morning, from the Copernicus Atmosphere Data Store", "ring": "views" },
+        { "at": 6.8, "until": 11.9, "text": "The app checks itself: haze days caught, missed, raised falsely.", "sub": "Forecast against the model's later estimate, not stations · and the app says so", "ring": "check" }
+      ]
+    },
+    { "id": "kiro-spec", "kind": "kiro", "panel": "spec", "seconds": 10, "chapter": "Built with Kiro",
+      "captions": [{ "at": 2.7, "until": 9.9, "text": "Spec-driven: requirements, design decisions, tasks.", "sub": "{specCounts}" }] },
+    { "id": "kiro-hooks", "kind": "kiro", "panel": "hooks", "seconds": 10,
+      "captions": [{ "at": 0.3, "until": 9.9, "text": "Steering sets the house rules. Hooks check every edit against them.", "sub": "They fire on Kiro's own edits too, and caught real bugs before they shipped" }] },
+    { "id": "kiro-tests", "kind": "kiro", "panel": "tests", "seconds": 8,
+      "captions": [{ "at": 0.3, "until": 7.9, "text": "Property-based tests, and one engine everywhere.", "sub": "Browser (WebAssembly) and agent (native CLI) give byte-identical output" }] },
+    { "id": "kiro-mcp", "kind": "kiro", "panel": "mcp", "seconds": 10,
+      "captions": [{ "at": 0.3, "until": 9.9, "text": "Kiro gets the same engine as MCP tools.", "sub": "7 tools, a custom briefing agent, a Kiro power · shown: the real output of daily_brief for 14 Oct" }] },
+    {
+      "id": "night", "kind": "app", "clip": "night-replay", "from": 0, "seconds": 7,
+      "captions": [{ "at": 0.3, "until": 6.9, "text": "The same night from space: the fires and the cities.", "sub": "NASA VIIRS Day/Night Band, 14 Oct 2026 · the app's night layer" }]
+    },
+    {
+      "id": "live", "kind": "app", "clip": "live-today", "from": 0, "seconds": 5.5,
+      "captions": [{ "at": 0.3, "until": 5.4, "text": "Live: the next five days, every morning.", "sub": "{liveNote}", "ring": "today" }]
+    },
+    { "id": "end", "kind": "end", "seconds": 7 }
+  ]
+}

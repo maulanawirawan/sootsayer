@@ -4,6 +4,7 @@ pipeline/
 mcp-server/
 power-sootsayer/
 docs/
+video/
 **/node_modules
 web/dist
 **/.venv

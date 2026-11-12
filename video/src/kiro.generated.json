@@ -1,0 +1,139 @@
+{
+ "counts": {
+  "specs": 2,
+  "requirements": 12,
+  "criteria": 48,
+  "tasks": 22,
+  "decisions": 10
+ },
+ "req1": [
+  "## Requirement 1 — A briefing a health office can send",
+  "",
+  "User story: As a Dinkes officer, I want a short text with this window's priority districts, so that I can send it to puskesmas heads on WhatsApp or print it for the morning meeting.",
+  "",
+  "1.1. WHEN the user opens the briefing, THE SYSTEM SHALL produce, in the current language (Bahasa Indonesia or English), a plain-text briefing with the region, the window dates, the mode (live or replay as hindsight), up to five ranked districts with their mean change in visits and its 95% range, the haze and fire-haze days, the profile, the mapped puskesmas count, the incomplete districts, the data times, any failed source, the method source, every method limit, and a line that it is not medical advice.",
+  "",
+  "1.2. THE SYSTEM SHALL generate the briefing text in the engine, so that the web app (WebAssembly) and the MCP tool (native CLI) return byte-identical text for identical input.",
+  "",
+  "1.3. WHEN no district with complete data has a haze day in the window, THE SYSTEM SHALL say so instead of listing districts.",
+  "",
+  "1.4. THE SYSTEM SHALL offer copy, share to WhatsApp, download as .txt, and print, without sending the text anywhere by itself.",
+  "",
+  "1.5. IF the metadata given to the engine is malformed (control characters, a non-https link, an out-of-range count), THEN THE SYSTEM SHALL refuse it with a clear error instead of writing a briefing."
+ ],
+ "tasksV2": [
+  "- [x] 1. Engine: briefing text",
+  "- [x] 2. Engine: waiting room and point location",
+  "- [x] 3. Pipeline: region packs",
+  "- [x] 4. Edge functions take `region`",
+  "- [x] 5. Web: region switch, briefing panel, CSV, waiting room",
+  "- [x] 6. Web: tour, night layer, phone layout, clean console",
+  "- [x] 7. MCP server and Kiro surfaces",
+  "- [x] 8. Parity and docs",
+  "- [ ] 9. Owner actions (not doable by the agent)",
+  "- [ ] 10. Replay as forecast and the forecast check"
+ ],
+ "rules": [
+  "## House rules (never break these)",
+  "1. Real data only. The product never shows mock or made-up data. Every layer and every number names its source and the time it refers to.",
+  "2. Ranges, not single numbers. Every estimate shows its 95% interval next to the point value, plus the study it comes from.",
+  "3. Say the limits on screen. The method comes from one study of six puskesmas in Central Kalimantan (Phung et al. 2025). The effect was clear in Pulang Pisau and absent in Palangka Raya city. The app says so where the numbers appear.",
+  "4. Never present stale data as current. If a source fails or is old, the UI shows which source and how old, and the outlook is marked incomplete.",
+  "5. Decision support, not diagnosis. The app estimates load on clinics; it does not give medical advice to individuals."
+ ],
+ "hooks": [
+  {
+   "id": "engine-check-on-save",
+   "name": "Engine check on save",
+   "trigger": "PostFileSave",
+   "matcher": "(^|[\\\\/])engine[\\\\/].*\\.rs$",
+   "action": "command",
+   "command": "node web/scripts/engine-check.mjs"
+  },
+  {
+   "id": "house-rules-ui-check",
+   "name": "House rules UI check",
+   "trigger": "PostFileSave",
+   "matcher": "(^|[\\\\/])web[\\\\/]src[\\\\/].*\\.ts$",
+   "action": "agent",
+   "command": null
+  },
+  {
+   "id": "method-citation-check",
+   "name": "Method citation check",
+   "trigger": "PostFileSave",
+   "matcher": "(^|[\\\\/])(engine[\\\\/]src[\\\\/]method\\.rs|docs[\\\\/]METHOD\\.md)$",
+   "action": "agent",
+   "command": null
+  }
+ ],
+ "tests": {
+  "props": [
+   "test indoor_estimate_is_ordered_and_lower_with_a_cleaner ... ok",
+   "test purifier_count_covers_the_room_and_is_minimal ... ok",
+   "test kabupaten_effect_never_shrinks_during_an_unbroken_run ... ok",
+   "test clear_days_leave_visits_unchanged_and_unknown_days_give_nothing ... ok",
+   "test ranges_are_always_ordered ... ok",
+   "test every_brief_carries_ranges_limits_and_the_disclaimer ... ok",
+   "test same_input_same_output ... ok",
+   "test forecast_check_counts_every_pair_once_and_is_symmetric ... ok"
+  ],
+  "results": [
+   "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+   "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s"
+  ]
+ },
+ "parity": [
+  "identical  kalimantan outlook             wasm 7b95b050e964bf00 cli 7b95b050e964bf00 2032236 bytes",
+  "identical  kalimantan brief (id)          wasm 2d9eef88db130ba9 cli 2d9eef88db130ba9 1935 bytes",
+  "identical  kalimantan brief (en)          wasm 532a0357f029ca8c cli 532a0357f029ca8c 1934 bytes",
+  "identical  sumatra outlook                wasm 75344504b01ef4e7 cli 75344504b01ef4e7 1108884 bytes",
+  "identical  sumatra brief (id)             wasm 4c3d9fe70a3bedd4 cli 4c3d9fe70a3bedd4 1983 bytes",
+  "identical  sumatra brief (en)             wasm 1f29867947b71f93 cli 1f29867947b71f93 1982 bytes"
+ ],
+ "mcp": {
+  "tools": [
+   "list_regions",
+   "list_districts",
+   "priority",
+   "haze_outlook",
+   "clinic_plan",
+   "daily_brief",
+   "forecast_check"
+  ],
+  "call": "daily_brief(region='kalimantan', mode='replay', date='2026-10-14', lang='en')",
+  "text": "Sootsayer haze briefing: Kalimantan, 14–18 Oct 2026 for the district health office\nReplay (hindsight): archived model data, not the forecast issued on that day\n\nPriority for posko and oxygen houses\nExpected change in puskesmas respiratory visits, mean over 5 days, with 95% range:\n1. Pulang Pisau: +88% (+14% … +211%); 5 haze days, 5 with local fires, regency profile, 1 mapped puskesmas\n2. Barito Selatan: +87% (+17% … +199%); 5 haze days, 4 with local fires, regency profile, 4 mapped puskesmas\n3. Kapuas: +87% (+17% … +199%); 5 haze days, 4 with local fires, regency profile, 5 mapped puskesmas\n4. Hulu Sungai Utara: +86% (+21% … +188%); 5 haze days, 3 with local fires, regency profile, 8 mapped puskesmas\n5. Katingan: +81% (+13% … +191%); 5 haze days, 5 with local fires, regency profile, 0 mapped puskesmas\n\nData sources:\n• Copernicus CAMS + NASA FIRMS: 2026-11-11T10:49:53Z\nMethod: Phung et al. 2025, Int J Epidemiol, doi:10.1093/ije/dyaf169 (Table 4, main model).\nMethod limits:\n• One study: six puskesmas in Palangka Raya and Pulang Pisau, 2015-2019.\n• The effect was clear in Pulang Pisau (kabupaten) and absent in Palangka Raya city (kota); the authors call the overall result inconclusive.\n• Outside Central Kalimantan the study's estimates are applied by analogy: other Kalimantan provinces and Sumatra were not part of the study.\n• Relative risks are cumulative over lag 0-5 days and are applied as daily multipliers, which is exact only for sustained haze.\n• Smoke values are model estimates (CAMS, about 45 km grid), not station measurements.\nThis estimates clinic load for planning. It is not medical advice for individuals.\nDetails: https://sootsayer.vercel.app/?region=kalimantan&mode=replay&date=2026-10-14",
+  "keys": [
+   "complete",
+   "instructions",
+   "lang",
+   "mode",
+   "ranked",
+   "region",
+   "text",
+   "title",
+   "window_end",
+   "window_start"
+  ]
+ },
+ "findings": [
+  {
+   "hook": "house-rules-ui-check",
+   "file": "web/src/data.ts",
+   "what": "An English source label would have appeared inside the Indonesian briefing.",
+   "fix": "Source name and run time only"
+  },
+  {
+   "hook": "house-rules-ui-check",
+   "file": "web/src/main.ts",
+   "what": "A failed forecast load would have kept the \"What was forecast\" label over hindsight data.",
+   "fix": "Fall back to hindsight and name the source"
+  },
+  {
+   "hook": "house-rules-ui-check",
+   "file": "web/src/ui.ts",
+   "what": "The legend's ' WHO' tick label was hard-coded outside i18n.ts.",
+   "fix": "Moved to i18n.ts (id + en)"
+  }
+ ]
+}
