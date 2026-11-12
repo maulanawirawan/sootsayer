@@ -88,10 +88,20 @@ MAX_WAIT_S = 8 * 3600
 DONE = ("successful", "failed", "rejected", "dismissed", "deleted")
 
 
+def job_status(remote, tag: str) -> str:
+    """The job's status; a network error (sleep, Wi-Fi drop) means "ask again later", not failure."""
+    while True:
+        try:
+            return remote.status
+        except Exception as e:  # noqa: BLE001 - any transport error; the job itself lives on the ADS
+            print(f"[{tag}]   cannot reach the ADS ({type(e).__name__}); trying again in 2 min", flush=True)
+            time.sleep(120)
+
+
 def wait_for(remote, t0: float, tag: str) -> str:
     """Poll an ADS job until it ends; return its final status."""
     last = None
-    while (status := remote.status) not in DONE:
+    while (status := job_status(remote, tag)) not in DONE:
         if status != last:
             print(f"[{tag}]   {time.time() - t0:6.0f} s {status}", flush=True)
             last = status
