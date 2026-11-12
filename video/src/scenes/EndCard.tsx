@@ -14,7 +14,7 @@ const rand = (i: number) => {
 export function EndCard({ lead = 0 }: { lead?: number }) {
   const f = useCurrentFrame() - lead;
   const t = f / FPS;
-  const fadeIn = interpolate(f, [-lead, 0], [0, 1], clamp);
+  const fadeIn = lead ? interpolate(f, [-lead, 0], [0, 1], clamp) : 1;
   const embers = Array.from({ length: 140 }, (_, i) => {
     const speed = 30 + rand(i) * 70;
     const x = rand(i + 500) * 1920 + Math.sin(t * (0.6 + rand(i + 9)) + i) * 26;

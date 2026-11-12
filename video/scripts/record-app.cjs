@@ -37,21 +37,28 @@ const CLIPS = {
     prepare: 7600,
     seconds: 19.8,
     steps: [{ at: 0.4, click: '#play' }, { at: 19.2, click: '#play' }],
-    marks: [{ at: 1.0, name: 'play', selector: '#play' }, { at: 1.0, name: 'legend', selector: '.legend-keys .statuses' }, { at: 19.6, name: 'priority', selector: '#priority ol.priority' }],
+    marks: [
+      { at: 1.0, name: 'play', selector: '#play' },
+      { at: 1.0, name: 'legend', selector: '.legend-keys .statuses' },
+      { at: 1.0, name: 'timeline', selector: '#timeline' },
+      { at: 19.0, name: 'pillars', lngLat: [114.0, -2.4], size: [430, 250] },
+      { at: 19.6, name: 'priority', selector: '#priority ol.priority' },
+    ],
   },
   district: {
     url: '/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=en',
     prepare: 7600,
-    seconds: 12,
+    seconds: 15,
     steps: [
       { at: 0.8, click: 'button.row[data-code="KT-pulang-pisau"]' },
-      { at: 7.9, click: '#right details.limits summary' },
-      { at: 8.1, eval: () => document.querySelector('#right details.limits')?.scrollIntoView({ block: 'end' }) },
+      { at: 10.6, click: '#right details.limits summary' },
+      { at: 10.8, eval: () => document.querySelector('#right details.limits')?.scrollIntoView({ block: 'end' }) },
     ],
     marks: [
       { at: 0.5, name: 'row', selector: 'button.row[data-code="KT-pulang-pisau"]' },
+      { at: 4.0, name: 'status', selector: '#right .big' },
       { at: 4.0, name: 'kpiWindow', selector: '#right .kpi', contains: '5 days' },
-      { at: 9.0, name: 'limits', selector: '#right details.limits ul' },
+      { at: 11.8, name: 'limits', selector: '#right details.limits ul' },
     ],
   },
   puskesmas: {
@@ -70,12 +77,17 @@ const CLIPS = {
       { at: 11.8, name: 'indoor', selector: '#ca-indoor table' },
     ],
   },
+  // English from the first frame: the judges read English (the app also writes it in Bahasa Indonesia).
   briefing: {
-    url: '/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=id',
+    url: '/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=en',
     prepare: 7600,
-    seconds: 10,
-    steps: [{ at: 0.6, click: '#brief-open' }, { at: 5.0, click: '#lang' }],
-    marks: [{ at: 0.3, name: 'button', selector: '#brief-open' }, { at: 3.0, name: 'share', selector: '#right .buttons' }, { at: 7.0, name: 'textEn', selector: 'pre.brief' }],
+    seconds: 11,
+    steps: [{ at: 0.6, click: '#brief-open' }],
+    marks: [
+      { at: 0.3, name: 'button', selector: '#brief-open' },
+      { at: 3.0, name: 'share', selector: '#right .buttons' },
+      { at: 3.0, name: 'ranked', selector: 'pre.brief', range: ['1. ', null] },
+    ],
   },
   sumatra: {
     url: '/?region=kalimantan&mode=replay&date=2026-10-07&intro=0&lang=en',
@@ -104,7 +116,11 @@ const CLIPS = {
     prepare: 7600,
     seconds: 5.5,
     steps: [{ at: 0.1, eval: () => window.sootsayer.map.map.easeTo({ bearing: window.sootsayer.map.map.getBearing() - 8, duration: 5500, easing: (t) => t }) }],
-    marks: [{ at: 1.0, name: 'priority', selector: '#priority' }, { at: 1.0, name: 'today', selector: '.chip.today' }],
+    marks: [
+      { at: 1.0, name: 'priority', selector: '#priority' },
+      { at: 1.0, name: 'today', selector: '.chip.today' },
+      { at: 1.0, name: 'nohaze', selector: '#priority p.muted', contains: 'No haze days' },
+    ],
   },
 };
 
@@ -131,6 +147,42 @@ async function boxOf(page, selector, contains) {
     },
     [selector, contains ?? null],
   );
+}
+
+/** Box of a mark: an element, a text range inside one (from `range[0]` to the end of the line
+ * starting with `range[1]`), or a fixed-size box around a projected map point. */
+async function markBox(page, m) {
+  if (m.lngLat) {
+    const r = await page.evaluate(([lngLat, size]) => {
+      try {
+        const p = window.sootsayer.map.map.project(lngLat);
+        return { x: p.x - size[0] / 2, y: p.y - size[1] / 2, w: size[0], h: size[1], text: '' };
+      } catch (e) {
+        return { error: String(e) };
+      }
+    }, [m.lngLat, m.size]);
+    if (!r || r.error) console.warn(`\nmark ${m.name}: ${r ? r.error : 'no result'}`);
+    return r && !r.error ? r : null;
+  }
+  if (m.range) {
+    return page.evaluate(([sel, from, to]) => {
+      const el = document.querySelector(sel);
+      const node = el?.firstChild;
+      if (!node || node.nodeType !== 3) return null;
+      const s = node.textContent;
+      const a = s.indexOf(from);
+      // no `to`: the range ends with the line that starts at `from`
+      const bStart = to ? s.indexOf(to, a + 1) : a;
+      if (a < 0 || bStart < 0) return null;
+      const bEnd = s.indexOf('\n', bStart);
+      const r = document.createRange();
+      r.setStart(node, a);
+      r.setEnd(node, bEnd < 0 ? s.length : bEnd);
+      const b = r.getBoundingClientRect();
+      return { x: b.left, y: b.top, w: b.width, h: b.height, text: s.slice(a, bEnd).slice(0, 400) };
+    }, [m.selector, m.range[0], m.range[1]]);
+  }
+  return boxOf(page, m.selector, m.contains);
 }
 
 async function settle(page, maxMs = 1500) {
@@ -214,7 +266,7 @@ async function record(browser, name, spec) {
       }
     }
     for (const m of spec.marks) {
-      if (Math.abs(m.at - t) < 0.5 / FPS) marks.push({ name: m.name, t, box: await boxOf(page, m.selector, m.contains) });
+      if (Math.abs(m.at - t) < 0.5 / FPS) marks.push({ name: m.name, t, box: await markBox(page, m) });
     }
     await page.clock.runFor(1000 / FPS);
     await settle(page);
@@ -231,7 +283,9 @@ async function record(browser, name, spec) {
   console.log(`\r[${name}] ${n} frames -> public/clips/${name}.mp4; marks ${marks.filter((m) => m.box).length}/${marks.length}; errors ${errors.length}`);
 }
 
-(async () => {
+module.exports = { markBox, boxOf, CLIPS };
+
+if (require.main === module) (async () => {
   if (process.argv[2] === '--index') return writeIndex();
   const names = process.argv.slice(2).length ? process.argv.slice(2) : Object.keys(CLIPS);
   const browser = await chromium.launch({

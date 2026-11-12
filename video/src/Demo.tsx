@@ -2,6 +2,7 @@ import { AbsoluteFill, Audio, Sequence, staticFile } from 'remotion';
 import clips from './clips.generated.json';
 import { CHAR } from './fonts';
 import { AppShot } from './scenes/AppShot';
+import { BurnCard, CARD } from './scenes/BurnCard';
 import { ColdOpen } from './scenes/ColdOpen';
 import { EndCard } from './scenes/EndCard';
 import { KiroShot } from './scenes/KiroShot';
@@ -19,17 +20,20 @@ const META = clips as Record<string, ClipMeta>;
 const shots = placeShots(new Set(Object.keys(META)));
 /** The fly-in clip starts under the burning paper, this long before its own slot. */
 export const LEAD = Math.round(4.5 * FPS);
-/** Every later shot fades in over the end of the previous one. */
+/** Every later shot pushes in over the end of the previous one. */
 export const XFADE = 9;
 
 export const demoFrames = () => shots[shots.length - 1].start + shots[shots.length - 1].frames;
+
+/** A chapter that opens with a card (not just a label) cuts hard to the card. */
+const hasCard = (s: (typeof shots)[number]) => Boolean(s.chapter && !s.label && s.kind !== 'cold');
 
 export function Demo() {
   return (
     <AbsoluteFill style={{ background: CHAR }}>
       {shots.map((s, i) => {
         const afterCold = i > 0 && shots[i - 1].kind === 'cold';
-        const lead = afterCold ? LEAD : i > 0 ? XFADE : 0;
+        const lead = afterCold ? LEAD : i > 0 && !hasCard(s) ? XFADE : 0;
         if (s.kind === 'app' && s.clip) {
           return (
             <Sequence key={s.id} from={s.start - lead} durationInFrames={s.frames + lead} name={s.id}>
@@ -51,6 +55,12 @@ export function Demo() {
           );
         return null;
       })}
+      {/* Chapter cards burn away into their shot. */}
+      {shots.filter(hasCard).map((s) => (
+        <Sequence key={`card-${s.id}`} from={s.start} durationInFrames={Math.round(CARD.seconds * FPS) + 1} name={`card ${s.id}`}>
+          <BurnCard chapter={s.chapter as string} />
+        </Sequence>
+      ))}
       {/* The cold open is drawn last so the app shows through the burnt paper. */}
       {shots
         .filter((s) => s.kind === 'cold')

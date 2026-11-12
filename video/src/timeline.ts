@@ -6,12 +6,15 @@ export const FPS = raw.fps;
 export interface Caption {
   at: number;
   until: number;
+  /** `*word*` marks the one ember word of the line. */
   text: string;
   sub?: string;
-  /** Name of a mark recorded with the clip (element box) to ring with charcoal. */
+  /** Name of a mark recorded with the clip (element box): the camera pushes in on it and a charcoal ring is drawn. */
   ring?: string;
-  /** Punch-in scale toward the ringed box while this caption shows. */
+  /** Zoom override; by default the zoom makes the ringed box comfortably readable. */
   punch?: number;
+  /** A low hit lands with this caption (sparingly: the biggest number of the film). */
+  hit?: boolean;
 }
 
 export interface Shot {
@@ -22,7 +25,11 @@ export interface Shot {
   from?: number;
   rate?: number;
   chapter?: string;
+  /** Show the chapter as a small label over the footage (no title card). */
+  label?: boolean;
   panel?: 'spec' | 'hooks' | 'tests' | 'mcp';
+  /** Hooks panel: seconds (after the panel starts) at which each "caught" stamp lands. */
+  stamps?: number[];
   captions?: Caption[];
   optional?: boolean;
 }

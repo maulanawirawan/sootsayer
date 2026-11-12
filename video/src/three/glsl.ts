@@ -147,6 +147,44 @@ void main(){
 }
 `;
 
+// Chapter card: the card (a canvas texture) writes itself in from the left
+// with an ember edge, then burns away from a point, showing the shot below.
+export const CARD_VERT = /* glsl */ `
+varying vec2 vUv;
+void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
+`;
+
+export const CARD_FRAG = /* glsl */ `
+${NOISE}
+uniform sampler2D uCard;
+uniform float uWrite, uBurn, uAspect;
+uniform vec2 uOrigin;   // burn origin in uv
+varying vec2 vUv;
+void main(){
+  vec4 card = texture2D(uCard, vUv);
+  vec2 p = vec2(vUv.x * uAspect, vUv.y);
+  // ink written in from the left, with a soft hot edge
+  float wx = uWrite * 1.15 - 0.05;
+  float ink = smoothstep(wx + 0.02, wx - 0.02, vUv.x + (vnoise(vec2(vUv.y * 40.0, 3.0)) - 0.5) * 0.02);
+  float edge = smoothstep(0.03, 0.0, abs(vUv.x - wx)) * step(0.001, uWrite) * step(uWrite, 0.999);
+  vec3 bg = vec3(0.043, 0.047, 0.059) * (0.85 + 0.3 * fbm(p * 3.0));
+  float vig = 1.0 - smoothstep(0.35, 1.05, length((vUv - 0.5) * vec2(1.2, 1.0)));
+  bg *= 0.7 + 0.3 * vig;
+  vec3 col = mix(bg, card.rgb, card.a * ink);
+  col += vec3(1.0, 0.55, 0.15) * edge * card.a * 1.5;
+  // burn from uOrigin outward, same look as the cold open's paper
+  vec2 o = vec2(uOrigin.x * uAspect, uOrigin.y);
+  float field = distance(p, o) / 1.1 + fbm(p * 4.0 + 7.0) * 0.38;
+  float e = uBurn * 2.0 - field - 0.08;
+  if (e > 0.05) discard;
+  float glow = smoothstep(-0.004, 0.025, e) * (1.0 - smoothstep(0.025, 0.05, e));
+  float charr = smoothstep(-0.09, -0.004, e);
+  col = mix(col, col * 0.15 + vec3(0.05, 0.025, 0.015), charr * 0.9);
+  col += vec3(1.0, 0.42, 0.08) * glow * 1.4 + vec3(1.0, 0.82, 0.5) * glow * glow * 0.6;
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
 export const SPARK_VERT = /* glsl */ `
 attribute float aField;
 attribute float aSeed;

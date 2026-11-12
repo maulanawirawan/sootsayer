@@ -344,12 +344,14 @@ export function ColdOpen({ chapter = '1/4  The problem' }: { chapter?: string })
             Every line is drawn from real data: coastlines (Natural Earth) and{' '}
             {data ? data.facts.districts.kalimantan + data.facts.districts.sumatra : 96} district borders of Kalimantan and Sumatra (geoBoundaries).
           </Sub>
-          <Hand t={t} at={8.6} until={13.9} size={230} color={ink}>
+          <Hand t={t} at={8.6} until={13.9} size={230} color={light ? '#b5400e' : EMBER} style={{ textShadow: light ? shadow : '0 0 30px rgba(245,140,40,0.55), 0 0 10px rgba(0,0,0,0.8)' }}>
             <FireCount data={data} t={t} total={fires} />
           </Hand>
           <Hand t={t} at={9.2} until={13.9} size={64} color={ink}>satellite fire detections in one day.</Hand>
           <Sub t={t} at={9.2} until={13.9} color={sub}>NASA FIRMS · VIIRS NOAA-20 · Kalimantan, 14 October 2026</Sub>
-          <Hand t={t} at={14.5} until={20.1} size={92} color={ink}>At least 425,167</Hand>
+          <Hand t={t} at={14.5} until={20.1} size={104} color={EMBER} style={{ textShadow: '0 0 26px rgba(245,140,40,0.5), 0 0 12px rgba(0,0,0,0.85)' }}>
+            At least 425,167
+          </Hand>
           <Hand t={t} at={15.0} until={20.1} size={62} color={ink}>respiratory infections from fire haze, 20 Aug – 5 Nov.</Hand>
           <Sub t={t} at={15.0} until={20.1} color={sub}>Indonesian Ministry of Health, via The Jakarta Post (9 Nov 2026) · hatching = Copernicus CAMS PM2.5, 14 Oct</Sub>
           <Hand t={t} at={20.5} until={25.3} size={70} color={ink}>Satellites see the fire.</Hand>

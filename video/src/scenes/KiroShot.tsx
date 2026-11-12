@@ -5,12 +5,14 @@ import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from 'remotion';
 import { CHAR, EMBER, INK, MUTED, mono, sans } from '../fonts';
 import K from '../kiro.generated.json';
 import { FPS, type Placed } from '../timeline';
-import { Captions, Chapter } from '../ui/Caption';
+import { Captions } from '../ui/Caption';
 import { Grain } from '../ui/Grain';
 import { FRAME } from './AppShot';
+import { CARD } from './BurnCard';
 
 const clamp = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const;
 const GREEN = '#7fd0a8';
+const FIRE = '#e2552b';
 
 function Window({ title, children, style }: { title: string; children: React.ReactNode; style?: React.CSSProperties }) {
   return (
@@ -84,7 +86,7 @@ function Spec({ t }: { t: number }) {
   );
 }
 
-function Hooks({ t }: { t: number }) {
+function Hooks({ t, stamps }: { t: number; stamps: number[] }) {
   const rules = K.rules.filter((l: string) => /^\d\./.test(l.trim()));
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.15fr', gap: 18, height: '100%' }}>
@@ -103,14 +105,37 @@ function Hooks({ t }: { t: number }) {
         </Window>
         <Window title="Hook findings during this build" style={{ flex: 1 }}>
           {K.findings.map((x: { file: string; what: string; fix: string }, i: number) => {
-            const at = 3.6 + i * 1.6;
-            const a = interpolate(t, [at, at + 0.35], [0, 1], clamp);
-            const fixed = interpolate(t, [at + 0.9, at + 1.2], [0, 1], clamp);
+            const at = stamps[i] ?? 3.6 + i * 1.8; // the stamp lands here (the score uses the same times)
+            const a = interpolate(t, [at - 0.7, at - 0.4], [0, 1], clamp);
+            const slam = interpolate(t, [at, at + 0.16], [0, 1], { ...clamp, easing: Easing.out(Easing.back(2.2)) });
+            const fixed = interpolate(t, [at + 0.75, at + 1.05], [0, 1], clamp);
             return (
-              <div key={i} style={{ opacity: a, marginBottom: 14, fontFamily: sans, fontSize: 20, lineHeight: 1.35 }}>
+              <div key={i} style={{ position: 'relative', opacity: a, marginBottom: 16, fontFamily: sans, fontSize: 21, lineHeight: 1.35 }}>
                 <div style={{ fontFamily: mono, fontSize: 16, color: MUTED }}>{x.file}</div>
-                <div style={{ color: INK }}>{x.what}</div>
+                <div style={{ color: INK, paddingRight: 190 }}>{x.what}</div>
                 <div style={{ color: GREEN, opacity: fixed }}>✓ fixed: {x.fix}</div>
+                {t >= at ? (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      right: 0,
+                      top: 6,
+                      transform: `rotate(-7deg) scale(${1.6 - 0.6 * slam})`,
+                      opacity: Math.min(1, slam * 1.4),
+                      border: `3px solid ${FIRE}`,
+                      color: FIRE,
+                      borderRadius: 6,
+                      padding: '4px 10px',
+                      fontFamily: mono,
+                      fontWeight: 600,
+                      fontSize: 18,
+                      letterSpacing: 2,
+                      boxShadow: `0 0 14px rgba(226,85,43,${0.35 * slam})`,
+                    }}
+                  >
+                    CAUGHT BY HOOK
+                  </div>
+                ) : null}
               </div>
             );
           })}
@@ -185,19 +210,19 @@ function Mcp({ t }: { t: number }) {
 export function KiroShot({ shot, lead = 0 }: { shot: Placed; lead?: number }) {
   const f = useCurrentFrame() - lead;
   const t = f / FPS;
-  const fadeIn = interpolate(f, [-lead, 0], [0, 1], clamp);
+  const fadeIn = lead ? interpolate(f, [-lead, 0], [0, 1], clamp) : 1;
   const counts = `${K.counts.specs} specs · ${K.counts.requirements} requirements · ${K.counts.criteria} acceptance criteria · ${K.counts.tasks} tasks, in .kiro/specs/`;
   // with a chapter card first, the panel starts typing once the card is gone
-  const pt = t - (shot.chapter ? 2.4 : 0);
-  const body = shot.panel === 'spec' ? <Spec t={pt} /> : shot.panel === 'hooks' ? <Hooks t={pt} /> : shot.panel === 'tests' ? <Tests t={pt} /> : <Mcp t={pt} />;
-  const enter = interpolate(t, [-lead / FPS, 0.5], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
+  const pt = t - (shot.chapter ? CARD.seconds : 0);
+  const body =
+    shot.panel === 'spec' ? <Spec t={pt} /> : shot.panel === 'hooks' ? <Hooks t={pt} stamps={shot.stamps ?? []} /> : shot.panel === 'tests' ? <Tests t={pt} /> : <Mcp t={pt} />;
+  const enter = interpolate(t, [-lead / FPS - 0.001, 0.5], [0, 1], { ...clamp, easing: Easing.out(Easing.cubic) });
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 40%, #191a1f 0%, ${CHAR} 70%)`, opacity: fadeIn }}>
       <div style={{ position: 'absolute', left: FRAME.x, top: FRAME.y, width: FRAME.w, height: FRAME.h, padding: 22, opacity: enter, transform: `translateY(${(1 - enter) * 12}px)` }}>
         {body}
-        {shot.chapter ? <Chapter t={t} text={shot.chapter} scrim={0.92} /> : null}
       </div>
-      <Captions t={t} captions={shot.captions ?? []} top={FRAME.y + FRAME.h + 26} sub={(s) => s.replace('{specCounts}', counts)} />
+      <Captions t={t} captions={shot.captions ?? []} top={FRAME.y + FRAME.h + 22} sub={(s) => s.replace('{specCounts}', counts)} />
       <Grain frame={f} opacity={0.05} />
     </AbsoluteFill>
   );

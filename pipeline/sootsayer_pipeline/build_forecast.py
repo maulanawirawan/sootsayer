@@ -81,6 +81,9 @@ def area_for(grids: list[dict]) -> list[float]:
     return [max(lats) + 0.1, min(lons) - 0.3, min(lats) - 0.1, max(lons) + 0.3]
 
 
+# Requests for past runs come from the MARS archive, which the Data Store
+# limits to 60 running requests for all users together (job QoS, Nov 2026:
+# 849 queued), so a wait of many hours is normal. --max-hours changes it.
 MAX_WAIT_S = 8 * 3600
 DONE = ("successful", "failed", "rejected", "dismissed", "deleted")
 
@@ -295,12 +298,15 @@ def build(r: Region, paths: list[Path]) -> None:
 
 
 def main(argv: list[str] | None = None) -> None:
+    global MAX_WAIT_S
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--region", action="append", choices=sorted(REGIONS),
                     help=f"region to build (repeatable); default: {DEFAULT_REGION}")
     ap.add_argument("--download-only", action="store_true", help="only fetch the CAMS runs into the cache")
     ap.add_argument("--job", help="ADS request id submitted earlier: wait for it instead of queueing a new request")
+    ap.add_argument("--max-hours", type=float, default=MAX_WAIT_S / 3600, help="give up waiting after this many hours")
     args = ap.parse_args(argv)
+    MAX_WAIT_S = int(args.max_hours * 3600)
     # The cached download always covers every region, so building one region
     # later never needs a second ADS request.
     paths = download([grid_of(r) for r in REGIONS.values() if (r.data_dir / "grid.json").exists()], args.job)

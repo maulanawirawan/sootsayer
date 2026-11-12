@@ -7,15 +7,20 @@ const rand = (i: number) => {
   return x - Math.floor(x);
 };
 
-/** A hand-drawn charcoal loop around a box (in frame pixels), drawn on over 0.6 s. */
-export function Ring({ box, t, at, until, seed = 1 }: { box: { x: number; y: number; w: number; h: number }; t: number; at: number; until: number; seed?: number }) {
+/**
+ * A hand-drawn charcoal loop around a box (in frame pixels), drawn on over 0.6 s.
+ * `zoom` is the camera zoom it will be seen at, so the stroke and the gap
+ * around the box keep the same on-screen size.
+ */
+export function Ring({ box, t, at, until, seed = 1, zoom = 1 }: { box: { x: number; y: number; w: number; h: number }; t: number; at: number; until: number; seed?: number; zoom?: number }) {
   if (t < at || t > until) return null;
-  const draw = interpolate(t, [at + 0.15, at + 0.75], [0, 1], clamp);
+  const draw = interpolate(t, [at, at + 0.6], [0, 1], clamp);
   const fade = interpolate(t, [until - 0.35, until], [1, 0], clamp);
+  const u = 1 / zoom;
   const cx = box.x + box.w / 2;
   const cy = box.y + box.h / 2;
-  const rx = box.w / 2 + 18;
-  const ry = box.h / 2 + 14;
+  const rx = box.w / 2 + 22 * u;
+  const ry = box.h / 2 + 16 * u;
   const paths = [0, 1, 2].map((k) => {
     const pts: string[] = [];
     const a0 = -2.2 + rand(seed * 7 + k) * 0.5;
@@ -28,29 +33,32 @@ export function Ring({ box, t, at, until, seed = 1 }: { box: { x: number; y: num
     return `M${pts.join(' L')}`;
   });
   return (
-    <svg style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none' }} width="100%" height="100%">
+    <svg
+      style={{ position: 'absolute', inset: 0, overflow: 'visible', pointerEvents: 'none', filter: `drop-shadow(0 0 ${(5 * u).toFixed(1)}px rgba(0,0,0,0.9))` }}
+      width="100%"
+      height="100%"
+    >
       <defs>
         <filter id={`rough-${seed}`}>
           <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves={1} seed={seed} />
-          <feDisplacementMap in="SourceGraphic" scale={2.2} />
+          <feDisplacementMap in="SourceGraphic" scale={2.2 * u} />
         </filter>
       </defs>
-      {paths.map((d, k) => (
-        <path
-          key={k}
-          d={d}
-          pathLength={1}
-          fill="none"
-          stroke={k === 0 ? 'rgba(255, 244, 222, 0.95)' : 'rgba(245, 165, 36, 0.55)'}
-          strokeWidth={k === 0 ? 4 : 2}
-          strokeLinecap="round"
-          strokeDasharray="1 1"
-          strokeDashoffset={1 - draw}
-          opacity={fade}
-          filter={`url(#rough-${seed})`}
-          style={{ filter: k === 0 ? 'drop-shadow(0 0 6px rgba(0,0,0,0.8))' : undefined }}
-        />
-      ))}
+      <g filter={`url(#rough-${seed})`} opacity={fade}>
+        {paths.map((d, k) => (
+          <path
+            key={k}
+            d={d}
+            pathLength={1}
+            fill="none"
+            stroke={k === 0 ? 'rgba(255, 244, 222, 0.97)' : 'rgba(245, 165, 36, 0.6)'}
+            strokeWidth={(k === 0 ? 4.5 : 2.2) * u}
+            strokeLinecap="round"
+            strokeDasharray="1 1"
+            strokeDashoffset={1 - draw}
+          />
+        ))}
+      </g>
     </svg>
   );
 }
