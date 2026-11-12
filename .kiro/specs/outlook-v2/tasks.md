@@ -54,7 +54,7 @@
   - [ ] Add `forecast_check` to `autoApprove`.
   - [ ] Kiro Crew is installed; schedule the morning briefing.
 
-- [ ] 10. Replay as forecast and the forecast check
+- [x] 10. Replay as forecast and the forecast check
   - [x] Engine: `check.rs`, CLI `forecast-check`, `ss_forecast_check`,
     `BriefMode::Forecast`, unit and property tests.
   - [x] Pipeline: `build_forecast.py` (one ADS request for both regions,
@@ -64,6 +64,12 @@
     `view=forecast` in the URL, ADS credit in the footer.
   - [x] MCP: `mode="forecast"` and `forecast_check`.
   - [x] Parity: forecast check WASM == CLI == the pipeline's table.
-  - [ ] Build both regions from the ADS download, test in the browser, and
+  - [x] Build both regions from the ADS download (job queued about 18 hours
+    behind the Data Store's 60-request limit for its MARS archive), test in the
+    browser (both regions, both languages, deep link, live mode, briefing), and
     add the check results to METHOD.md and README.
+  - [x] Found while checking: the archive behind hindsight is built from the
+    first hours of each run, so the first 7 hours of the first forecast day are
+    the same data on both sides. Said in the app, in METHOD.md, and in the
+    MCP tool's caveats.
   - _Requirements: 7.1–7.5_

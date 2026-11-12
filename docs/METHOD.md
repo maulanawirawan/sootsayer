@@ -221,6 +221,31 @@ days after 31 October have no hindsight data.
 own later estimate. Both sides are CAMS, so this is not a validation against
 measured air quality, and it says nothing about the visit estimates.
 
+**The first day flatters the forecast.** The archive behind the hindsight
+view is built from the first hours of each CAMS run. At an exact CAMS point
+(104.0° E, 2.8° S, 14 October 2026) the 12:00 UTC run's leads 5–11 h equal the
+archive to 0.1 µg/m³, and every later lead differs. So the first 7 hours of the
+first day (00:00–06:59 WIB) are the same data on both sides. From +1 day on,
+the forecast and the archive come from different runs.
+
+**Results, October 2026** (31 window mornings; 56 districts in Kalimantan and
+40 in Sumatra; pairs after 31 October have no hindsight and are left out):
+
+| Lead day | Kalimantan: haze days caught | Kalimantan: false alarms (share of warnings) | Sumatra: haze days caught | Sumatra: false alarms (share of warnings) |
+|---|---|---|---|---|
+| First day | 425 of 486 (87%) | 54 (11%) | 192 of 279 (69%) | 12 (6%) |
+| +1 day | 361 of 480 (75%) | 69 (16%) | 133 of 274 (49%) | 34 (20%) |
+| +2 days | 331 of 470 (70%) | 70 (17%) | 122 of 269 (45%) | 51 (29%) |
+| +3 days | 326 of 455 (72%) | 84 (20%) | 113 of 268 (42%) | 60 (35%) |
+| +4 days | 311 of 438 (71%) | 84 (21%) | 108 of 265 (41%) | 54 (33%) |
+
+In Kalimantan the morning forecast caught about three of four district haze
+days one to four days ahead, and about one warning in five was false. In
+Sumatra it caught fewer than half from +1 day on, and up to a third of its
+warnings were false, so the later window days there deserve less weight. The
+same table is in the app (forecast view) and in the MCP tool `forecast_check`,
+with these caveats.
+
 ## Verification in this repo
 
 - 31 unit tests and 8 property-based tests (proptest) in `engine/`: range

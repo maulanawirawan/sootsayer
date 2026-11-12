@@ -314,7 +314,9 @@ pre.brief {
 table.indoor td:last-child { white-space: nowrap; text-align: right; }
 .modes.views button.active { background: #5aa9e6; color: #07121c; }
 #check:not(:empty) { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
-table.check td:first-child { white-space: nowrap; color: var(--muted); }
+table.check td { white-space: nowrap; }
+table.check td:first-child { color: var(--muted); }
+table.check th { font-weight: 500; font-size: 11.5px; color: var(--muted); vertical-align: bottom; }
 
 /* presentation mode caption */
 #tour {

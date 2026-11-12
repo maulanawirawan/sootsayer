@@ -383,7 +383,21 @@ def forecast_check(region: str = DEFAULT_REGION) -> dict:
     fc = _forecast_file(region)
     return {"region": region, "issue_dates": [fc["issue_dates"][0], fc["issue_dates"][-1]],
             "check": fc["check"], "source": fc["source"],
+            "caveats": FORECAST_CHECK_CAVEATS,
+            "instructions": "Quote rates with their counts and these caveats; this is model against model, not a validation.",
             "app": _link(region, "forecast", REPLAY_DEFAULT_DAY)}
+
+
+FORECAST_CHECK_CAVEATS = [
+    "Hindsight is archived CAMS model data (Open-Meteo), not station measurements: the check measures agreement "
+    "with the model's later estimate, not accuracy against measured air quality.",
+    "The archive is built from the first hours of each CAMS run, so the first 7 hours of the first day "
+    "(00:00-06:59 WIB) are the same data on both sides and lead day 0 flatters the forecast; from +1 day the "
+    "two sides come from different runs.",
+    "Kalimantan: the forecast takes the mean of the two CAMS points beside each cell and the archive a nearby point, "
+    "which adds some difference on every day. Sumatra cells sit on CAMS points.",
+    "Pairs after 31 Oct 2026 have no hindsight and are counted as missing.",
+]
 
 
 if __name__ == "__main__":

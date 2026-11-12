@@ -159,7 +159,7 @@ export function renderCheck(fc: ForecastReplayFile | null): void {
   const rows = fc.check.leads
     .map((r) => {
       const events = r.hits + r.misses;
-      const label = r.lead_day === 0 ? t('checkLead0') : t('checkLead', { n: r.lead_day });
+      const label = r.lead_day === 0 ? t('checkLead0') : r.lead_day === 1 ? t('checkLead1') : t('checkLead', { n: r.lead_day });
       const caught = events ? t('checkCaught', { hits: r.hits, events, pct: pct(r.pod) }) : t('checkNoEvents');
       return `<tr><td>${esc(label)}</td><td>${esc(caught)}</td><td>${esc(t('checkFalse', { n: r.false_alarms, pct: pct(r.far) }))}</td></tr>`;
     })
@@ -170,7 +170,10 @@ export function renderCheck(fc: ForecastReplayFile | null): void {
   el.innerHTML = `
     <h3>${esc(t('checkTitle'))}</h3>
     <p class="muted small">${esc(t('checkHint', { from: day(first), to: day(last) }))}</p>
-    <table class="days check"><tbody>${rows}</tbody></table>
+    <table class="days check">
+      <thead><tr><th></th><th>${esc(t('checkColCaught'))}</th><th>${esc(t('checkColFalse'))}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
     <p class="muted small">${esc(t('checkDefs', { threshold: fmtNumber(fc.check.threshold_pm10_ugm3, 0) }))}</p>
     <p class="muted small">${esc(t('checkSource'))}</p>`;
 }

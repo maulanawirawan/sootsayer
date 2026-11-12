@@ -71,7 +71,10 @@ and a briefing to send to the puskesmas heads.
   available at 06:00 WIB, from the Copernicus Atmosphere Data Store. A check
   per lead day counts the district haze days that forecast caught, missed, or
   raised falsely, compared with the hindsight data (model against model, not
-  against stations, and the app says so).
+  against stations, and the app says so). One day ahead it caught 75% of
+  Kalimantan's district haze days (361 of 480, 16% of warnings false) but only
+  49% of Sumatra's (133 of 274), so the app tells a health office where the
+  later days deserve less weight. Details: [docs/METHOD.md](docs/METHOD.md#replay-as-forecast-and-the-forecast-check).
 - **Presentation mode** (`?tour=1`): a captioned walk through the real app.
 - **Agents can ask it.** An MCP server gives Kiro (or any MCP client) the same
   numbers and the same briefing: `list_regions`, `list_districts`, `priority`,
