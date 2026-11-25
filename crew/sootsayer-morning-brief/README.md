@@ -13,6 +13,8 @@ the WhatsApp group of a district health office (Dinas Kesehatan) gets the same
 bytes the web app shows.
 
 Built for Kiroween 2026 inside the [Sootsayer repository](https://github.com/maulanawirawan/sootsayer).
+The app is also published as its own repository:
+[maulanawirawan/sootsayer-morning-brief](https://github.com/maulanawirawan/sootsayer-morning-brief).
 
 ## What it brings to Kiro Crew
 

@@ -28,7 +28,7 @@
   "links": [
     { "label": "Live app", "url": "https://sootsayer.vercel.app" },
     { "label": "Method and limits", "url": "https://github.com/maulanawirawan/sootsayer/blob/main/docs/METHOD.md" },
-    { "label": "Source", "url": "https://github.com/maulanawirawan/sootsayer/tree/main/crew/sootsayer-morning-brief" }
+    { "label": "Source", "url": "https://github.com/maulanawirawan/sootsayer-morning-brief" }
   ],
   "agents": ["agents/morning-briefer.json"],
   "skills": ["skills/haze-morning-brief"],

@@ -14,7 +14,7 @@ Everything below is in the repository: `.kiro/`, `power-sootsayer/` and
 |---|---|
 | **Kiro IDE** | Specs, steering, agent hooks, the MCP server registration (`.kiro/settings/mcp.json`), the custom agent `sootsayer-briefer`, and most of the code. |
 | **Kiro power** | `power-sootsayer/` packages the MCP server with two skills (`haze-briefing`, `add-a-region`) so another Kiro user gets the tools and the know-how in one install. |
-| **Kiro Crew** | `crew/sootsayer-morning-brief/`: a Crew app with a 06:00 WIB schedule, an agent, a skill and the MCP server, so the briefing arrives without anyone opening the IDE. |
+| **Kiro Crew** | `crew/sootsayer-morning-brief/` (also its own repository, [sootsayer-morning-brief](https://github.com/maulanawirawan/sootsayer-morning-brief)): a Crew app with a 06:00 WIB schedule, an agent, a skill and the MCP server, so the briefing arrives without anyone opening the IDE. |
 
 The IDE is where the product was designed and checked; Crew is where it runs
 unattended. The same MCP tools and the same rules serve both.

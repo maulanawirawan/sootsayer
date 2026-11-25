@@ -160,8 +160,9 @@ uv run --project mcp-server python mcp-server/server.py
 
 ## A morning briefing with Kiro Crew
 
-[`crew/sootsayer-morning-brief/`](crew/sootsayer-morning-brief/) is a Kiro
-Crew app: a 06:00 WIB schedule (Asia/Jakarta, shipped paused), the agent
+[`crew/sootsayer-morning-brief/`](crew/sootsayer-morning-brief/), also published as its own
+repository, [maulanawirawan/sootsayer-morning-brief](https://github.com/maulanawirawan/sootsayer-morning-brief),
+is a Kiro Crew app: a 06:00 WIB schedule (Asia/Jakarta, shipped paused), the agent
 `sootsayer-morning-briefer`, the skill `haze-morning-brief`, and the
 Sootsayer MCP server with its seven read-only tools approved for unattended
 runs. Each morning the agent calls `daily_brief` for Kalimantan and Sumatra
