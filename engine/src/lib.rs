@@ -6,6 +6,7 @@
 //! gives byte-identical output.
 
 pub mod brief;
+pub mod chance;
 pub mod check;
 pub mod dates;
 pub mod error;
@@ -81,6 +82,10 @@ pub mod json {
 
     pub fn forecast_check(bytes: &[u8]) -> String {
         run(bytes, crate::check::forecast_check)
+    }
+
+    pub fn chance_check(bytes: &[u8]) -> String {
+        run(bytes, crate::chance::chance_check)
     }
 }
 

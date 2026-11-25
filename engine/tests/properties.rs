@@ -49,6 +49,7 @@ prop_compose! {
                 id: "P".into(), name: "P".into(), district_code: "D".into(),
                 baseline_visits_per_day: baseline,
             }],
+            haze_chance_model: None,
         }
     }
 }
@@ -105,6 +106,7 @@ proptest! {
                 fire_count: vec![Some(if with_fire { 3 } else { 0 }); n],
             }],
             puskesmas: vec![],
+            haze_chance_model: None,
         };
         let out = outlook(&input).unwrap();
         let points: Vec<f64> = out.districts[0].days.iter().map(|d| d.rr.unwrap().point).collect();
@@ -187,5 +189,47 @@ proptest! {
             prop_assert!(has_range, "ranked line without a range: {}", l);
         }
         prop_assert_eq!(serde_json::to_string(&brief(&b).unwrap()).unwrap(), serde_json::to_string(&out).unwrap());
+    }
+
+    // Outlook v3, requirement 1: a chance is a probability, only on window
+    // days, never invented, and never changes the study's estimates.
+    #[test]
+    fn chance_is_a_probability_on_window_days_only(
+        input in outlook_input(),
+        rows in prop::collection::vec([-30.0f64..30.0, -5.0f64..5.0, -5.0f64..5.0], 1..8),
+    ) {
+        let plain = outlook(&input).unwrap();
+        let mut with = input.clone();
+        with.haze_chance_model = Some(ChanceModel { id: "m".into(), coefficients: rows.clone() });
+        let out = outlook(&with).unwrap();
+        let w = out.days.iter().position(|d| *d == out.window_start).unwrap();
+        for (d, p) in out.districts.iter().zip(&plain.districts) {
+            for (i, day) in d.days.iter().enumerate() {
+                match day.haze_chance {
+                    Some(c) => {
+                        prop_assert!((0.0..=1.0).contains(&c));
+                        prop_assert!(i >= w && i - w < rows.len());
+                        prop_assert!(day.pm10_ugm3.is_some() && w > 0 && d.days[w - 1].pm10_ugm3.is_some());
+                    }
+                    None => prop_assert!(i < w || i - w >= rows.len() || day.pm10_ugm3.is_none() || w == 0 || d.days[w - 1].pm10_ugm3.is_none()),
+                }
+            }
+            prop_assert_eq!(serde_json::to_string(&d.days.iter().map(|x| (x.status, x.rr)).collect::<Vec<_>>()).unwrap(),
+                            serde_json::to_string(&p.days.iter().map(|x| (x.status, x.rr)).collect::<Vec<_>>()).unwrap());
+            prop_assert!(p.peak_haze_chance.is_none());
+        }
+        prop_assert_eq!(serde_json::to_string(&out.priority.iter().map(|e| (&e.district_code, e.rank)).collect::<Vec<_>>()).unwrap(),
+                        serde_json::to_string(&plain.priority.iter().map(|e| (&e.district_code, e.rank)).collect::<Vec<_>>()).unwrap());
+    }
+
+    #[test]
+    fn more_forecast_smoke_never_lowers_the_chance(
+        a in -30.0f64..30.0, b in 0.0f64..5.0, c in -5.0f64..5.0,
+        f1 in 0.0f64..1500.0, df in 0.0f64..1500.0, y in 0.0f64..1500.0,
+    ) {
+        let m = ChanceModel { id: "m".into(), coefficients: vec![[a, b, c]] };
+        let lo = sootsayer_engine::chance::chance(&m, 0, Some(f1), Some(y)).unwrap();
+        let hi = sootsayer_engine::chance::chance(&m, 0, Some(f1 + df), Some(y)).unwrap();
+        prop_assert!(lo <= hi, "{} > {}", lo, hi);
     }
 }

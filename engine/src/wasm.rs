@@ -102,3 +102,10 @@ pub unsafe extern "C" fn ss_brief(ptr: *const u8, len: usize) -> *mut u8 {
 pub unsafe extern "C" fn ss_forecast_check(ptr: *const u8, len: usize) -> *mut u8 {
     respond(crate::json::forecast_check(unsafe { view(ptr, len) }))
 }
+
+/// # Safety
+/// `ptr` must point to `len` readable bytes of UTF-8 JSON.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn ss_chance_check(ptr: *const u8, len: usize) -> *mut u8 {
+    respond(crate::json::chance_check(unsafe { view(ptr, len) }))
+}

@@ -2,6 +2,7 @@
 
 use std::collections::{BTreeMap, HashSet};
 
+use crate::chance;
 use crate::dates;
 use crate::error::EngineError;
 use crate::method::{self, Definition};
@@ -74,14 +75,21 @@ fn validate(input: &OutlookInput) -> Result<usize, EngineError> {
             }
         }
     }
+    if let Some(m) = &input.haze_chance_model {
+        chance::validate(m)?;
+    }
     Ok(window)
 }
 
-fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> DistrictOutlook {
+fn district_outlook(d: &DistrictInput, days: &[String], window: usize, model: Option<&ChanceModel>) -> DistrictOutlook {
     let mut run = 0u32;
     let mut out_days = Vec::with_capacity(days.len());
     let (mut complete, mut haze_days, mut fire_haze_days) = (true, 0u32, 0u32);
     let (mut change_sum, mut known_window_days) = (Range::ZERO, 0u32);
+    // The chance reads the day before the window: known on the morning the
+    // forecast is read (hindsight in the replay, the latest analysis live).
+    let day_before = if window > 0 { d.pm10_ugm3[window - 1] } else { None };
+    let mut peak: Option<ChancePeak> = None;
     for (i, date) in days.iter().enumerate() {
         let (status, fire_data) = classify(d.pm10_ugm3[i], d.fire_count[i]);
         run = match status {
@@ -98,6 +106,13 @@ fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> Distri
             (_, None) => None,
         };
         let in_window = i >= window;
+        let haze_chance = if in_window { model.and_then(|m| chance::chance(m, i - window, d.pm10_ugm3[i], day_before)) } else { None };
+        if let Some(c) = haze_chance {
+            // Highest chance; the first day wins a tie.
+            if peak.as_ref().is_none_or(|p| c > p.chance) {
+                peak = Some(ChancePeak { chance: c, date: date.clone() });
+            }
+        }
         if in_window {
             if let Some(r) = rr {
                 change_sum = change_sum.add(r.minus(1.0));
@@ -123,6 +138,7 @@ fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> Distri
             duration_group: group,
             rr,
             fire_data,
+            haze_chance,
         });
     }
     DistrictOutlook {
@@ -134,6 +150,7 @@ fn district_outlook(d: &DistrictInput, days: &[String], window: usize) -> Distri
         haze_days,
         fire_haze_days,
         window_mean_change: (known_window_days > 0).then(|| change_sum.scale(1.0 / f64::from(known_window_days))),
+        peak_haze_chance: peak,
     }
 }
 
@@ -196,6 +213,7 @@ fn priority(districts: &[DistrictOutlook], puskesmas: &[PuskesmasOutlook]) -> Ve
                 fire_haze_days: d.fire_haze_days,
                 puskesmas_count,
                 complete: d.complete,
+                peak_haze_chance: d.peak_haze_chance.clone(),
             }
         })
         .collect();
@@ -222,8 +240,9 @@ fn priority(districts: &[DistrictOutlook], puskesmas: &[PuskesmasOutlook]) -> Ve
 
 pub fn outlook(input: &OutlookInput) -> Result<OutlookOutput, EngineError> {
     let window = validate(input)?;
+    let model = input.haze_chance_model.as_ref();
     let districts: Vec<DistrictOutlook> =
-        input.districts.iter().map(|d| district_outlook(d, &input.days, window)).collect();
+        input.districts.iter().map(|d| district_outlook(d, &input.days, window, model)).collect();
     let by_code: BTreeMap<&str, &DistrictOutlook> = districts.iter().map(|d| (d.code.as_str(), d)).collect();
     let puskesmas: Vec<PuskesmasOutlook> = input
         .puskesmas
@@ -245,6 +264,8 @@ pub fn outlook(input: &OutlookInput) -> Result<OutlookOutput, EngineError> {
         districts,
         puskesmas,
         priority,
+        haze_chance_model: model.map(|m| m.id.trim().to_string()),
+        haze_chance_alert: method::HAZE_CHANCE_ALERT,
     })
 }
 
@@ -275,6 +296,7 @@ mod tests {
                 district_code: "D1".into(),
                 baseline_visits_per_day: None,
             }],
+            haze_chance_model: None,
         }
     }
 
@@ -379,6 +401,7 @@ mod tests {
                     baseline_visits_per_day: Some(20.0),
                 })
                 .collect(),
+            haze_chance_model: None,
         };
         let out = outlook(&inp).unwrap();
         assert_eq!(out.priority[0].district_code, "D1");

@@ -10,7 +10,7 @@
 use crate::dates;
 use crate::error::EngineError;
 use crate::method;
-use crate::model::{BriefInput, BriefMode, BriefOutput, Lang, PriorityEntry, Profile, Range};
+use crate::model::{BriefInput, BriefMode, BriefOutput, ChancePeak, Lang, PriorityEntry, Profile, Range};
 use crate::outlook;
 
 struct Words {
@@ -37,6 +37,9 @@ struct Words {
     limits_head: &'static str,
     not_medical: &'static str,
     details: &'static str,
+    chance_peak: &'static str,
+    watch_head: &'static str,
+    chance_method: &'static str,
     months: [&'static str; 12],
 }
 
@@ -64,6 +67,9 @@ const ID: Words = Words {
     limits_head: "Batas metode:",
     not_medical: "Ini perkiraan beban layanan untuk perencanaan, bukan nasihat medis untuk perorangan.",
     details: "Rincian:",
+    chance_peak: "peluang hari kabut tertinggi {p}% ({date})",
+    watch_head: "Waspada: belum hari kabut menurut prakiraan, tetapi peluangnya {p}% atau lebih:",
+    chance_method: "Peluang hari kabut: koreksi statistik prakiraan CAMS (regresi logistik per hari, model {id}), diuji pada minggu yang tidak ikut dilatih, terhadap estimasi model sendiri, bukan stasiun.",
     months: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
 };
 
@@ -91,6 +97,9 @@ const EN: Words = Words {
     limits_head: "Method limits:",
     not_medical: "This estimates clinic load for planning. It is not medical advice for individuals.",
     details: "Details:",
+    chance_peak: "highest haze-day chance {p}% ({date})",
+    watch_head: "Watch: no haze day in the forecast yet, but a chance of {p}% or more:",
+    chance_method: "Haze-day chance: a statistical correction of the CAMS forecast (logistic regression per lead day, model {id}), tested on weeks it did not see, against the model's own later estimate, not stations.",
     months: ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
 };
 
@@ -147,8 +156,33 @@ fn clean(label: &str, s: &str, max: usize) -> Result<String, EngineError> {
     Ok(t.to_string())
 }
 
-fn ranked_line(i: usize, p: &PriorityEntry, profile: Profile, w: &Words) -> Option<String> {
-    let change = p.mean_change.as_ref()?;
+/// Chance as a whole percent, rounded like the web app (`Math.round`). A
+/// chance is never certain, so the ends read ">99" and "<1", not 100 and 0.
+fn chance_pct(c: f64) -> String {
+    let v = (c * 100.0 + 0.5).floor();
+    if v >= 100.0 {
+        ">99".into()
+    } else if v <= 0.0 {
+        "<1".into()
+    } else {
+        format!("{v}")
+    }
+}
+
+/// "14 Okt"
+fn day_month(iso: &str, w: &Words) -> Result<String, EngineError> {
+    let (_, m, d) = ymd(iso)?;
+    Ok(format!("{d} {}", w.months[m - 1]))
+}
+
+fn chance_text(peak: &ChancePeak, w: &Words) -> Result<String, EngineError> {
+    Ok(w.chance_peak.replace("{p}", &chance_pct(peak.chance)).replace("{date}", &day_month(&peak.date, w)?))
+}
+
+fn ranked_line(i: usize, p: &PriorityEntry, profile: Profile, w: &Words) -> Result<Option<String>, EngineError> {
+    let Some(change) = p.mean_change.as_ref() else {
+        return Ok(None);
+    };
     let mut parts = vec![w.haze_days.replace("{n}", &p.haze_days.to_string())];
     if p.fire_haze_days > 0 {
         parts.push(w.fire_haze_days.replace("{n}", &p.fire_haze_days.to_string()));
@@ -161,7 +195,10 @@ fn ranked_line(i: usize, p: &PriorityEntry, profile: Profile, w: &Words) -> Opti
         .to_string(),
     );
     parts.push(w.mapped.replace("{n}", &p.puskesmas_count.to_string()));
-    Some(format!("{}. {}: {}; {}", i + 1, p.district_name, range_text(change), parts.join(", ")))
+    if let Some(peak) = &p.peak_haze_chance {
+        parts.push(chance_text(peak, w)?);
+    }
+    Ok(Some(format!("{}. {}: {}; {}", i + 1, p.district_name, range_text(change), parts.join(", "))))
 }
 
 pub fn brief(input: &BriefInput) -> Result<BriefOutput, EngineError> {
@@ -217,10 +254,30 @@ pub fn brief(input: &BriefInput) -> Result<BriefOutput, EngineError> {
         lines.push(w.priority_hint.replace("{n}", &window.len().to_string()));
         for (i, p) in ranked.iter().enumerate() {
             let profile = profiles.get(p.district_code.as_str()).copied().unwrap_or(Profile::Kabupaten);
-            if let Some(line) = ranked_line(i, p, profile, w) {
+            if let Some(line) = ranked_line(i, p, profile, w)? {
                 lines.push(line);
             }
         }
+    }
+    // Districts the raw forecast rule does not flag, but the chance does.
+    let mut watch: Vec<(&PriorityEntry, &ChancePeak)> = out
+        .priority
+        .iter()
+        .filter(|p| p.complete && p.haze_days == 0)
+        .filter_map(|p| p.peak_haze_chance.as_ref().filter(|c| c.chance >= method::HAZE_CHANCE_ALERT).map(|c| (p, c)))
+        .collect();
+    if !watch.is_empty() {
+        watch.sort_by(|a, b| b.1.chance.total_cmp(&a.1.chance).then(a.0.district_name.cmp(&b.0.district_name)));
+        lines.push(w.watch_head.replace("{p}", &chance_pct(method::HAZE_CHANCE_ALERT)));
+        let mut names = Vec::new();
+        for (p, c) in watch.iter().take(MAX_INCOMPLETE_NAMES) {
+            names.push(format!("{} {}% ({})", p.district_name, chance_pct(c.chance), day_month(&c.date, w)?));
+        }
+        let mut text = names.join(", ");
+        if watch.len() > MAX_INCOMPLETE_NAMES {
+            text = format!("{text} {}", w.more.replace("{n}", &(watch.len() - MAX_INCOMPLETE_NAMES).to_string()));
+        }
+        lines.push(text);
     }
     if !incomplete.is_empty() {
         let mut names = incomplete.iter().take(MAX_INCOMPLETE_NAMES).copied().collect::<Vec<_>>().join(", ");
@@ -251,6 +308,9 @@ pub fn brief(input: &BriefInput) -> Result<BriefOutput, EngineError> {
         }
     }
     lines.push(w.method.replace("{doi}", method::DOI));
+    if let Some(id) = &out.haze_chance_model {
+        lines.push(w.chance_method.replace("{id}", id));
+    }
     lines.push(w.limits_head.to_string());
     let limits: &[&str] = match input.lang {
         Lang::Id => &method::LIMITS_ID,
@@ -314,6 +374,7 @@ mod tests {
                     district_code: "KT-pulang-pisau".into(),
                     baseline_visits_per_day: None,
                 }],
+                haze_chance_model: None,
             },
             lang,
             region_name: "Kalimantan".into(),
@@ -396,5 +457,39 @@ mod tests {
         assert_eq!(date_span("2026-09-28", "2026-10-02", &ID).unwrap(), "28 Sep \u{2013} 2 Okt 2026");
         assert_eq!(date_span("2026-12-30", "2027-01-03", &EN).unwrap(), "30 Dec 2026 \u{2013} 3 Jan 2027");
         assert_eq!(date_span("2026-10-31", "2026-10-31", &EN).unwrap(), "31 Oct 2026");
+    }
+
+    fn with_model(mut i: BriefInput, rows: Vec<[f64; 3]>) -> BriefInput {
+        i.outlook.haze_chance_model = Some(crate::model::ChanceModel { id: "kalimantan-2026-10".into(), coefficients: rows });
+        i
+    }
+
+    #[test]
+    fn chance_appears_on_ranked_lines_with_the_model_line() {
+        // Chance rises with the forecast: about 0.95 at 300 ug/m3.
+        let rows = vec![[-14.0, 2.5, 0.5]; 5];
+        let out = brief(&with_model(input(Lang::En, 300.0, BriefMode::Forecast), rows.clone())).unwrap();
+        let line = out.text.lines().find(|l| l.starts_with("1. Pulang Pisau")).unwrap();
+        assert!(line.contains("highest haze-day chance 9"), "{line}");
+        assert!(line.contains("(4 Oct)"), "{line}");
+        assert!(out.text.contains("model kalimantan-2026-10"));
+        assert!(!out.text.contains("Watch:"), "haze days are already ranked");
+        let id = brief(&with_model(input(Lang::Id, 300.0, BriefMode::Forecast), rows)).unwrap();
+        assert!(id.text.contains("peluang hari kabut tertinggi"));
+        assert!(id.text.contains("(4 Okt)"));
+        // Without a model nothing about chances is written.
+        let plain = brief(&input(Lang::En, 300.0, BriefMode::Forecast)).unwrap();
+        assert!(!plain.text.contains("chance"));
+    }
+
+    #[test]
+    fn watch_lists_quiet_districts_with_a_high_chance() {
+        // No haze day by the rule (60 ug/m3), but a 50% chance everywhere.
+        let out = brief(&with_model(input(Lang::En, 60.0, BriefMode::Live), vec![[0.0, 0.0, 0.0]; 5])).unwrap();
+        assert!(out.text.contains("Watch: no haze day in the forecast yet, but a chance of 30% or more:"));
+        assert!(out.text.contains("Kota Palangka Raya 50% (4 Oct), Pulang Pisau 50% (4 Oct)"), "{}", out.text);
+        assert!(!out.text.contains("Katingan 50%"), "incomplete districts are never on the watch list");
+        let low = brief(&with_model(input(Lang::En, 60.0, BriefMode::Live), vec![[-5.0, 0.0, 0.0]; 5])).unwrap();
+        assert!(!low.text.contains("Watch:"));
     }
 }

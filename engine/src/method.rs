@@ -97,6 +97,28 @@ pub const INDOOR_SOURCE: &str = "Barn et al. 2008, J Expo Sci Environ Epidemiol 
 pub const CR_BOX_CADR_M3H: f64 = 682.0;
 pub const CR_BOX_SOURCE: &str = "Holder et al. 2022, Indoor Air 32:e13163 (US EPA chamber test, simulated wildfire smoke): Corsi-Rosenthal box with four MERV-13 filters, 401 cfm = 682 m3/h. Your build can differ; change filters often during smoke.";
 
+/// Haze-day chance (outlook v3): not from the study. A logistic regression
+/// per lead day corrects the CAMS forecast (model output statistics, as in
+/// Glahn HR, Lowry DA. The use of Model Output Statistics (MOS) in objective
+/// weather forecasting. J Appl Meteorol 1972;11:1203-1211). The coefficients
+/// are trained in the pipeline (build_chance, scikit-learn) and come in with
+/// the input; these are the fixed parts of the model.
+///
+/// PM10 values are floored at this value before the logarithm, so a clean day
+/// (or a value of 0) has a finite input.
+pub const CHANCE_FLOOR_UGM3: f64 = 1.0;
+
+/// Chance at or above which the app and the briefing raise a watch
+/// (waspada): a haze day is possible enough to prepare for. A decision rule
+/// of Sootsayer, not a study value: for clinic preparation a missed haze day
+/// costs more than a false alarm. Chosen among 0.3, 0.4 and 0.5 after the
+/// held-out October 2026 test (docs/METHOD.md): one day ahead, 0.3 caught 88%
+/// of Kalimantan's district haze days (raw forecast rule 75%) and 70% of
+/// Sumatra's (49%), with more false alarms (25% and 40% of warnings, raw 16%
+/// and 20%). Because it was chosen after that test, a new season is the real
+/// test.
+pub const HAZE_CHANCE_ALERT: f64 = 0.3;
+
 /// Limits the UI must show next to the numbers (product house rule 3).
 pub const LIMITS: [&str; 5] = [
     "One study: six puskesmas in Palangka Raya and Pulang Pisau, 2015-2019.",

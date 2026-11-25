@@ -100,6 +100,10 @@ pub struct OutlookInput {
     pub districts: Vec<DistrictInput>,
     #[serde(default)]
     pub puskesmas: Vec<PuskesmasInput>,
+    /// Only when the window values are a forecast (live, or the replay as
+    /// forecast); never with hindsight values.
+    #[serde(default)]
+    pub haze_chance_model: Option<ChanceModel>,
 }
 
 // ---------- outlook output ----------
@@ -117,6 +121,8 @@ pub struct DistrictDay {
     pub rr: Option<Range>,
     /// False when fire data was missing for that day.
     pub fire_data: bool,
+    /// Chance of a haze day (0 to 1), window days only, with a chance model.
+    pub haze_chance: Option<f64>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -133,6 +139,7 @@ pub struct DistrictOutlook {
     /// relative change in respiratory visits. Independent of baselines and of
     /// how many puskesmas are mapped. None when no window day is known.
     pub window_mean_change: Option<Range>,
+    pub peak_haze_chance: Option<ChancePeak>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -178,6 +185,7 @@ pub struct PriorityEntry {
     pub fire_haze_days: u32,
     pub puskesmas_count: u32,
     pub complete: bool,
+    pub peak_haze_chance: Option<ChancePeak>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -198,6 +206,10 @@ pub struct OutlookOutput {
     pub districts: Vec<DistrictOutlook>,
     pub puskesmas: Vec<PuskesmasOutlook>,
     pub priority: Vec<PriorityEntry>,
+    /// Id of the chance model used, if any.
+    pub haze_chance_model: Option<String>,
+    /// `method::HAZE_CHANCE_ALERT`, so callers never hard-code it.
+    pub haze_chance_alert: f64,
 }
 
 // ---------- clean-air plan ----------
@@ -294,6 +306,74 @@ pub enum BriefMode {
     Replay,
     /// Replay of the forecast that was available on the morning of the first day.
     Forecast,
+}
+
+// ---------- haze-day chance (outlook v3) ----------
+
+/// A haze-day chance model: one logistic regression per lead day, trained in
+/// the pipeline (build_chance). Row k holds [a, b, c] for lead day k:
+/// chance = 1 / (1 + e^-(a + b ln F + c ln Y)), F = forecast district PM10 of
+/// that day, Y = district PM10 of the day before the window, both floored at
+/// `method::CHANCE_FLOOR_UGM3`.
+#[derive(Debug, Clone, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChanceModel {
+    pub id: String,
+    pub coefficients: Vec<[f64; 3]>,
+}
+
+/// The highest window chance of a district and the first day it occurs.
+#[derive(Debug, Clone, PartialEq, Serialize)]
+pub struct ChancePeak {
+    pub chance: f64,
+    pub date: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct ChanceCheckInput {
+    pub lead_days: u32,
+    pub models: Vec<ChanceModel>,
+    /// (model index, lead day, forecast PM10, PM10 of the day before the
+    /// window, hindsight PM10 of the target day) per district-day, ug/m3.
+    pub pairs: Vec<(usize, u32, Option<f64>, Option<f64>, Option<f64>)>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ChanceLeadCheck {
+    pub lead_day: u32,
+    pub pairs: u32,
+    pub missing: u32,
+    /// The contingency table with "chance >= alert" as the warning.
+    pub hits: u32,
+    pub misses: u32,
+    pub false_alarms: u32,
+    pub correct_negatives: u32,
+    pub pod: Option<f64>,
+    pub far: Option<f64>,
+    /// Mean squared error of the chance against what happened (0 = perfect).
+    pub brier: Option<f64>,
+    /// The same for the raw rule (forecast PM10 >= threshold as 1, else 0).
+    pub brier_raw: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ReliabilityBin {
+    pub from: f64,
+    pub to: f64,
+    pub n: u32,
+    /// Mean chance given in this bin, and the share that was a haze day.
+    pub mean_chance: Option<f64>,
+    pub observed: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ChanceCheckOutput {
+    pub alert: f64,
+    pub threshold_pm10_ugm3: f64,
+    pub leads: Vec<ChanceLeadCheck>,
+    pub reliability: Vec<ReliabilityBin>,
+    pub definitions: &'static str,
 }
 
 // ---------- forecast check ----------
