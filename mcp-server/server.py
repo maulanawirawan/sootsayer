@@ -20,6 +20,8 @@ from typing import Any, Literal
 from mcp.server.mcpserver import MCPServer
 
 from sootsayer_pipeline import DEFAULT_REGION, REGIONS
+from sootsayer_pipeline.chance import load as load_chance
+from sootsayer_pipeline.chance import model_for as chance_model_for
 from sootsayer_pipeline.engine import district_pm10, fire_counts, load_reference, outlook_input, run
 from sootsayer_pipeline.sources import cams_daily, firms_nrt
 
@@ -171,7 +173,25 @@ def _input(region: str, mode: Mode, day: str | None, baselines: dict[str, float]
     pm = {k: v[:n] for k, v in district_pm10(ref["districts"], ds["pm10"]).items()}
     counts = {k: v[:n] for k, v in ds["counts"].items()}
     inp = outlook_input(days, window_start, ref["districts"], pm, counts, ds["known"], ref["puskesmas"], baselines)
+    # Haze-day chance (outlook v3): the same model choice as the web app.
+    model = chance_model_for(region, mode, window_start)
+    if model:
+        inp["haze_chance_model"] = model
     return inp, ds
+
+
+def _chance_note(out: dict, region: str, mode: Mode) -> str | None:
+    """Where the chance comes from, in one line (None without a chance)."""
+    mid = out.get("haze_chance_model")
+    if not mid:
+        return None
+    alert = round(out["haze_chance_alert"] * 100)
+    base = ("haze_chance is a statistical correction of the CAMS forecast (logistic regression per lead day, "
+            f"model {mid}); it is a chance, not a 95% range; the watch list uses {alert}% or more. Tested on "
+            "October 2026 weeks it did not see, against the model's own later estimate, not stations.")
+    if mode == "live":
+        return base + " Live: trained on October 2026 and applied to today's forecast by analogy."
+    return base + " This replay week was not seen by the model."
 
 
 def _outlook(region: str, mode: Mode, day: str | None, baselines: dict[str, float] | None = None) -> tuple[dict, dict]:
@@ -242,8 +262,15 @@ def priority(region: str = DEFAULT_REGION, mode: Mode = "live", date: str | None
         "window_days": [d for d in out["days"] if d >= out["window_start"]],
         "ranked": [{"rank": p["rank"], "district": p["district_name"], "code": p["district_code"],
                     "mean_change": p["mean_change"], "haze_days": p["haze_days"],
-                    "fire_haze_days": p["fire_haze_days"], "puskesmas_mapped": p["puskesmas_count"]}
+                    "fire_haze_days": p["fire_haze_days"], "puskesmas_mapped": p["puskesmas_count"],
+                    "peak_haze_chance": p.get("peak_haze_chance")}
                    for p in ranked],
+        # No haze day by the forecast rule, but a chance at or above the watch level.
+        "watch": [{"district": p["district_name"], "code": p["district_code"], "peak_haze_chance": p["peak_haze_chance"]}
+                  for p in sorted(out["priority"], key=lambda p: -(p.get("peak_haze_chance") or {}).get("chance", 0))
+                  if p["complete"] and p["haze_days"] == 0 and p.get("peak_haze_chance")
+                  and p["peak_haze_chance"]["chance"] >= out["haze_chance_alert"]][:10],
+        "chance_note": _chance_note(out, region, mode),
         "incomplete": [p["district_name"] for p in out["priority"] if not p["complete"]],
         "data": _data(ds),
         "method": out["method"],
@@ -278,6 +305,12 @@ def haze_outlook(district: str, mode: Mode = "live", date: str | None = None) ->
                f"{len(window)}-day window from {out['window_start']}, of which {d['fire_haze_days']} with "
                f"local fires. Expected change in puskesmas respiratory visits: {_pct(d['window_mean_change'])}. "
                f"Priority rank in {REFS[rid]['region'].name}: {rank if rank else 'not ranked (incomplete data)'}.")
+    peak = d.get("peak_haze_chance")
+    if peak:
+        # Same display rule as the briefing and the app: a chance is never certain.
+        v = int(peak["chance"] * 100 + 0.5)
+        shown = ">99" if v >= 100 else "<1" if v <= 0 else str(v)
+        summary += f" Highest haze-day chance {shown}% on {peak['date']} (see chance_note)."
     return {
         "summary": summary,
         "district": {"code": code, "name": d["name"], "province": props["province"], "region": rid,
@@ -285,9 +318,12 @@ def haze_outlook(district: str, mode: Mode = "live", date: str | None = None) ->
         "days": [{"date": x["date"], "status": x["status"], "duration_days": x["duration_days"],
                   "pm10_ugm3": None if x["pm10_ugm3"] is None else round(x["pm10_ugm3"], 1),
                   "fire_count": x["fire_count"], "fire_data": x["fire_data"],
-                  "change": None if not x["rr"] else {k: round(v - 1, 4) for k, v in x["rr"].items()}}
+                  "change": None if not x["rr"] else {k: round(v - 1, 4) for k, v in x["rr"].items()},
+                  "haze_chance": x.get("haze_chance")}
                  for x in window],
         "mean_change": d["window_mean_change"],
+        "peak_haze_chance": d.get("peak_haze_chance"),
+        "chance_note": _chance_note(out, rid, mode),
         "complete": d["complete"],
         "data": _data(ds),
         "method": out["method"],
@@ -381,9 +417,16 @@ def forecast_check(region: str = DEFAULT_REGION) -> dict:
     compared with the hindsight replay (archived model data, not station
     measurements). Computed by the Rust engine at build time."""
     fc = _forecast_file(region)
+    ch = load_chance(region)
+    chance = None
+    if ch:
+        # The haze-day chance on the same pairs, each week scored by a model that never saw it.
+        chance = {"model": ch["final"]["id"], "method": ch["method"], "test": ch["test"],
+                  "check": ch["check"], "agreement_with_scikit_learn": ch["agreement"]}
     return {"region": region, "issue_dates": [fc["issue_dates"][0], fc["issue_dates"][-1]],
             "check": fc["check"], "source": fc["source"],
-            "caveats": FORECAST_CHECK_CAVEATS,
+            "haze_chance": chance,
+            "caveats": FORECAST_CHECK_CAVEATS + (CHANCE_CAVEATS if chance else []),
             "instructions": "Quote rates with their counts and these caveats; this is model against model, not a validation.",
             "app": _link(region, "forecast", REPLAY_DEFAULT_DAY)}
 
@@ -397,6 +440,13 @@ FORECAST_CHECK_CAVEATS = [
     "Kalimantan: the forecast takes the mean of the two CAMS points beside each cell and the archive a nearby point, "
     "which adds some difference on every day. Sumatra cells sit on CAMS points.",
     "Pairs after 31 Oct 2026 have no hindsight and are counted as missing.",
+]
+
+CHANCE_CAVEATS = [
+    "haze_chance: one month of training data (October 2026, one haze season); a new season is the real test.",
+    "The watch level (chance at or above haze_chance.check.alert) was chosen after looking at this test, among 30%, 40% "
+    "and 50%; it trades more false alarms for fewer missed haze days.",
+    "Weeks next to each other are correlated even with purging, so the held-out scores may still flatter the model.",
 ]
 
 

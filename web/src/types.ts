@@ -73,6 +73,54 @@ export interface RegionInfo {
     /** The forecast available on each morning (from the Atmosphere Data Store), when built. */
     forecast?: { file: string; first_issue: string; last_issue: string; generated_at: string } | null;
   } | null;
+  /** Haze-day chance model (outlook v3, build_chance), when built. */
+  chance?: { file: string; model: string; generated_at: string } | null;
+}
+
+/** What the engine accepts as `haze_chance_model`. */
+export interface ChanceModel {
+  id: string;
+  coefficients: [number, number, number][];
+}
+
+export interface ChancePeak {
+  chance: number;
+  date: string;
+}
+
+export interface ChanceLeadCheck {
+  lead_day: number;
+  pairs: number;
+  missing: number;
+  hits: number;
+  misses: number;
+  false_alarms: number;
+  correct_negatives: number;
+  pod: number | null;
+  far: number | null;
+  brier: number | null;
+  brier_raw: number | null;
+}
+
+export interface ChanceFile {
+  generated_at: string;
+  region: string;
+  method: string;
+  inputs: string[];
+  target: string;
+  training: { issue_dates: [string, string]; pairs: number; haze_share: number };
+  final: ChanceModel;
+  folds: (ChanceModel & { issue_dates: [string, string]; training_pairs: number })[];
+  test: string;
+  check: {
+    alert: number;
+    threshold_pm10_ugm3: number;
+    leads: ChanceLeadCheck[];
+    reliability: { from: number; to: number; n: number; mean_chance: number | null; observed: number | null }[];
+    definitions: string;
+  };
+  agreement: { pairs: number; max_abs_diff: number; tolerance: number };
+  source: string;
 }
 
 export interface LeadCheck {
@@ -186,6 +234,8 @@ export interface OutlookInput {
     fire_count: (number | null)[];
   }[];
   puskesmas: { id: string; name: string; district_code: string; baseline_visits_per_day: number | null }[];
+  /** Only when the window values are a forecast (live, or the replay as forecast). */
+  haze_chance_model?: ChanceModel | null;
 }
 
 export interface DistrictDay {
@@ -198,6 +248,8 @@ export interface DistrictDay {
   duration_group: DurationGroup | null;
   rr: Range | null;
   fire_data: boolean;
+  /** Chance of a haze day (0 to 1), window days only, when a chance model was given. */
+  haze_chance: number | null;
 }
 
 export interface DistrictOutlook {
@@ -209,6 +261,8 @@ export interface DistrictOutlook {
   haze_days: number;
   fire_haze_days: number;
   window_mean_change: Range | null;
+  /** Highest window chance and its first day, when a chance model was given. */
+  peak_haze_chance: ChancePeak | null;
 }
 
 export interface PuskesmasDay {
@@ -239,6 +293,7 @@ export interface PriorityEntry {
   fire_haze_days: number;
   puskesmas_count: number;
   complete: boolean;
+  peak_haze_chance: ChancePeak | null;
 }
 
 export interface OutlookOutput {
@@ -255,6 +310,8 @@ export interface OutlookOutput {
   districts: DistrictOutlook[];
   puskesmas: PuskesmasOutlook[];
   priority: PriorityEntry[];
+  haze_chance_model: string | null;
+  haze_chance_alert: number;
 }
 
 export interface CleanAirInput {

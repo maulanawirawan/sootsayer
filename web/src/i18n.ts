@@ -263,6 +263,90 @@ const STRINGS = {
     en: 'Limits: the method comes from one study of six puskesmas in Central Kalimantan (Phung et al. 2025). Decision support, not diagnosis.',
   },
   helpTour: { id: 'Putar tur berpemandu', en: 'Play the guided tour' },
+  // ---------- outlook v3: start card, plain sentences, haze-day chance ----------
+  startTitle: { id: 'Mulai di sini', en: 'Start here' },
+  startStep1: {
+    id: 'Lihat peta. Warna kabupaten = perkiraan perubahan kunjungan pasien pernapasan. Pilar = perkiraan pasien per puskesmas.',
+    en: 'Look at the map. District colour = expected change in respiratory visits. Pillars = expected patients at each puskesmas.',
+  },
+  startStep2: {
+    id: 'Klik kabupaten di daftar Prioritas. Satu kalimat menjelaskan hari-hari ke depan, selalu dengan kisaran 95%.',
+    en: 'Click a district in the Priority list. One sentence explains the coming days, always with a 95% range.',
+  },
+  startStep3: {
+    id: 'Tekan Briefing: pesan siap kirim ke Dinkes lewat WhatsApp, lengkap dengan sumber dan batas metode.',
+    en: 'Press Briefing: a message ready to send to the health office on WhatsApp, with sources and method limits.',
+  },
+  startTour: { id: 'Tur berpemandu (sekitar 75 detik)', en: 'Guided tour (about 75 seconds)' },
+  startNote: {
+    id: 'Perkiraan beban layanan untuk perencanaan, bukan nasihat medis. Data terbuka dari NASA, Copernicus, dan OpenStreetMap. Tombol ? menjelaskan setiap lapisan.',
+    en: 'Clinic load estimates for planning, not medical advice. Open data from NASA, Copernicus and OpenStreetMap. The ? button explains every layer.',
+  },
+  plainDistrictHaze: {
+    id: 'Dalam {n} hari ini ada {haze} hari kabut. Kunjungan pasien pernapasan ke puskesmas diperkirakan {pct} dibanding hari biasa (kisaran 95%: {low} sampai {high}).',
+    en: 'Haze days in these {n} days: {haze}. Respiratory visits to puskesmas are expected to change by {pct} compared with a normal day (95% range {low} to {high}).',
+  },
+  plainDistrictClear: {
+    id: 'Tidak ada hari kabut dalam {n} hari ini: kunjungan pasien pernapasan diperkirakan seperti biasa.',
+    en: 'No haze day in these {n} days: respiratory visits are expected as usual.',
+  },
+  plainDistrictUnknown: {
+    id: 'Data asap belum lengkap untuk hari-hari ini, jadi belum ada perkiraan.',
+    en: 'Smoke data is incomplete for these days, so there is no estimate yet.',
+  },
+  plainPkm: {
+    id: 'Biasanya sekitar {base} pasien pernapasan sehari. Pada {date} diperkirakan sekitar {point} (kisaran 95%: {low} sampai {high}).',
+    en: 'Usually about {base} respiratory patients a day. On {date} about {point} are expected (95% range {low} to {high}).',
+  },
+  plainPkmDefault: {
+    id: 'Angka biasa ini dari studi; ganti dengan catatan puskesmas Anda di bawah.',
+    en: 'The usual number comes from the study; replace it with your own records below.',
+  },
+  plainPkmUnknown: {
+    id: 'Belum ada perkiraan untuk hari ini: data asap belum lengkap.',
+    en: 'No estimate for this day yet: smoke data is incomplete.',
+  },
+  chanceKpi: { id: 'Peluang hari kabut, {date}', en: 'Chance of a haze day, {date}' },
+  chancePeak: { id: 'Peluang tertinggi {p}% pada {date}.', en: 'Highest chance {p}% on {date}.' },
+  chanceCol: { id: 'Peluang', en: 'Chance' },
+  chanceShort: { id: 'peluang {p}%', en: 'chance {p}%' },
+  chanceSource: {
+    id: 'Peluang = koreksi statistik prakiraan CAMS (regresi logistik, model {model}). Ini peluang, bukan rentang 95%. Diuji pada minggu yang tidak ikut dilatih, terhadap estimasi model sendiri, bukan stasiun.',
+    en: 'Chance = a statistical correction of the CAMS forecast (logistic regression, model {model}). It is a chance, not a 95% range. Tested on weeks it did not see, against the model’s own later estimate, not stations.',
+  },
+  chanceLiveNote: {
+    id: 'Peluang hari kabut: model koreksi yang dilatih pada Oktober 2026, dipakai untuk prakiraan hari ini dengan analogi.',
+    en: 'Haze-day chance: a correction model trained on October 2026, applied to today’s forecast by analogy.',
+  },
+  chanceForecastNote: {
+    id: 'Peluang hari kabut dari model yang tidak pernah melihat minggu {from} sampai {to}.',
+    en: 'Haze-day chance from a model that never saw the week {from} to {to}.',
+  },
+  watchTitle: {
+    id: 'Waspada: belum hari kabut menurut prakiraan, tetapi peluangnya {p}% atau lebih',
+    en: 'Watch: no haze day in the forecast yet, but a chance of {p}% or more',
+  },
+  chanceCheckTitle: { id: 'Dengan peluang hari kabut (koreksi statistik)', en: 'With the haze-day chance (statistical correction)' },
+  chanceCheckHint: {
+    id: 'Peringatan = peluang {p}% atau lebih. Tiap minggu dinilai oleh model yang tidak pernah melihat minggu itu.',
+    en: 'Warning = a chance of {p}% or more. Each week is scored by a model that never saw that week.',
+  },
+  chanceBrier: {
+    id: 'Skor Brier satu hari ke depan (makin kecil makin baik): {b} dengan peluang, {raw} tanpa koreksi.',
+    en: 'Brier score one day ahead (lower is better): {b} with the chance, {raw} without the correction.',
+  },
+  chanceReliable: {
+    id: 'Saat peluangnya {from}–{to}%, hari kabut benar terjadi {saw}% kali (rata-rata peluang {said}%).',
+    en: 'When the chance was {from}–{to}%, a haze day came {saw}% of the time (mean chance {said}%).',
+  },
+  chanceCheckSource: {
+    id: 'Dilatih dengan scikit-learn; peluang dan tabel ini dihitung oleh mesin Rust yang sama dengan peta. Dibandingkan dengan estimasi model sendiri, bukan stasiun.',
+    en: 'Trained with scikit-learn; the chances and this table come from the same Rust engine as the map. Compared with the model’s own later estimate, not stations.',
+  },
+  helpChance: {
+    id: 'Peluang hari kabut: di mode Langsung dan "Yang diprakirakan", tiap kabupaten mendapat peluang hari kabut per hari, hasil koreksi statistik prakiraan CAMS. "Waspada" menandai kabupaten yang belum kabut menurut prakiraan tetapi peluangnya cukup tinggi.',
+    en: 'Haze-day chance: in Live and "What was forecast", each district gets a daily chance of a haze day, a statistical correction of the CAMS forecast. "Watch" marks districts the forecast does not show as hazy yet whose chance is high enough to prepare.',
+  },
 } as const;
 
 export type Key = keyof typeof STRINGS;

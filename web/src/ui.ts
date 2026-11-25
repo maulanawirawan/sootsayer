@@ -3,6 +3,7 @@
 import { fmtDate, fmtNumber, fmtPercent, t, type Key } from './i18n';
 import { SMOKE_STOPS, smokeLegendCss } from './smoke';
 import type {
+  ChanceFile,
   CleanAirOutput,
   DayStatus,
   DistrictOutlook,
@@ -44,14 +45,24 @@ export function setLoading(on: boolean): void {
   el.classList.toggle('hidden', !on || introVisible);
 }
 
-export function showIntro(region: string, onEnter: () => void): void {
+export function showIntro(region: string, onEnter: () => void, tourUrl: string): void {
   const el = $('#intro');
   el.innerHTML = `
     <div class="intro-card">
       <h1>Sootsayer</h1>
       <p class="tagline">${esc(t('tagline'))}</p>
       <p>${esc(t('intro'))}</p>
-      <button id="enter" class="primary">${esc(t('enter', { region }))}</button>
+      <h2 class="start-title">${esc(t('startTitle'))}</h2>
+      <ol class="start-steps">
+        <li>${esc(t('startStep1'))}</li>
+        <li>${esc(t('startStep2'))}</li>
+        <li>${esc(t('startStep3'))}</li>
+      </ol>
+      <div class="intro-actions">
+        <button id="enter" class="primary">${esc(t('enter', { region }))}</button>
+        <a class="secondary button" href="${esc(tourUrl)}">▶ ${esc(t('startTour'))}</a>
+      </div>
+      <p class="muted small">${esc(t('startNote'))}</p>
     </div>`;
   el.classList.remove('hidden');
   $('#enter').addEventListener('click', () => {
@@ -66,11 +77,13 @@ export function renderStatus(
   imageryNote: string,
   notice: string | null = null,
   forecastNote: string | null = null,
+  chanceNote: string | null = null,
 ): void {
   const errors = ds.errors
     .map((e) => `<div class="banner error">${esc(t('sourceFailed', { source: e.source }))}<br><span class="muted">${esc(e.error)}</span></div>`)
     .join('');
   const notes: string[] = notice ? [notice] : [];
+  if (chanceNote) notes.push(chanceNote);
   if (forecastNote) {
     // Replay as forecast: the window is what was known that morning.
     notes.push(forecastNote, t('futureFires'));
@@ -97,10 +110,26 @@ export function renderStatus(
 
 // ---------- priority ----------
 
+/** A share (0 to 1) as a whole percent, the same rounding as the engine's briefing. */
+export const chancePct = (c: number): number => Math.round(c * 100);
+
+/** A chance for display: never certain, so ">99" and "<1" at the ends (as the briefing writes it). */
+export const chanceLabel = (c: number): string => {
+  const v = chancePct(c);
+  return v >= 100 ? '>99' : v <= 0 ? '<1' : String(v);
+};
+
 export function renderPriority(out: OutlookOutput, onPick: (code: string) => void, onBrief: () => void): void {
   const windowDays = out.days.filter((d) => d >= out.window_start).length;
   const ranked = out.priority.filter((p) => p.complete && p.mean_change && p.haze_days > 0).slice(0, 10);
   const incomplete = out.priority.filter((p) => !p.complete);
+  // Watch: districts the forecast rule leaves clear, whose chance is high enough to prepare.
+  const watch = out.priority
+    .filter((p) => p.complete && p.haze_days === 0 && p.peak_haze_chance && p.peak_haze_chance.chance >= out.haze_chance_alert)
+    .sort((a, b) => (b.peak_haze_chance?.chance ?? 0) - (a.peak_haze_chance?.chance ?? 0) || a.district_name.localeCompare(b.district_name))
+    .slice(0, 8);
+  const chanceMeta = (p: (typeof ranked)[number]) =>
+    p.peak_haze_chance ? ` · ${esc(t('chanceShort', { p: chanceLabel(p.peak_haze_chance.chance) }))}` : '';
   const rows = ranked
     .map(
       (p) => `
@@ -108,10 +137,19 @@ export function renderPriority(out: OutlookOutput, onPick: (code: string) => voi
         <span class="rank">${p.rank}</span>
         <span class="name">${esc(p.district_name)}</span>
         <span class="value">${rangeText(p.mean_change as Range, 'percent')}</span>
-        <span class="meta">${esc(t('hazeDaysShort', { n: p.haze_days }))}${p.fire_haze_days ? `, ${esc(t('fireHazeDaysShort', { n: p.fire_haze_days }))}` : ''} · ${p.puskesmas_count} ${esc(t('pkmShort'))}</span>
+        <span class="meta">${esc(t('hazeDaysShort', { n: p.haze_days }))}${p.fire_haze_days ? `, ${esc(t('fireHazeDaysShort', { n: p.fire_haze_days }))}` : ''} · ${p.puskesmas_count} ${esc(t('pkmShort'))}${chanceMeta(p)}</span>
       </button></li>`,
     )
     .join('');
+  const watchBlock = watch.length
+    ? `<div class="watch"><p class="small"><strong>${esc(t('watchTitle', { p: chancePct(out.haze_chance_alert) }))}</strong></p>
+       <ul class="watch-list">${watch
+         .map(
+           (p) => `<li><button class="row watch-row" data-code="${esc(p.district_code)}"><span class="name">${esc(p.district_name)}</span>
+             <span class="meta">${esc(t('chanceShort', { p: chanceLabel((p.peak_haze_chance as { chance: number }).chance) }))} · ${esc(fmtDate((p.peak_haze_chance as { date: string }).date))}</span></button></li>`,
+         )
+         .join('')}</ul></div>`
+    : '';
   const inc = incomplete.length
     ? `<p class="muted small">${incomplete.length} ${esc(t('incomplete'))}: ${incomplete
         .slice(0, 6)
@@ -122,6 +160,8 @@ export function renderPriority(out: OutlookOutput, onPick: (code: string) => voi
     <h2>${esc(t('priorityTitle'))}</h2>
     <p class="muted small">${esc(t('priorityHint', { n: windowDays, date: fmtDate(out.window_start) }))}</p>
     ${ranked.length ? `<ol class="priority">${rows}</ol>` : `<p class="muted">${esc(t('noHaze'))}</p>`}
+    ${watchBlock}
+    ${out.haze_chance_model ? `<p class="muted small">${esc(t('chanceSource', { model: out.haze_chance_model }))}</p>` : ''}
     ${inc}
     <button id="brief-open" class="secondary">✉ ${esc(t('briefButton'))}</button>
     <p class="muted small">${esc(t('osmGap'))}</p>`;
@@ -149,7 +189,42 @@ export function renderViews(show: boolean, view: 'hindsight' | 'forecast', onVie
   );
 }
 
-export function renderCheck(fc: ForecastReplayFile | null): void {
+/** The held-out test of the haze-day chance, under the raw forecast check. */
+function chanceCheckBlock(ch: ChanceFile, pct: (x: number | null) => string): string {
+  const c = ch.check;
+  const leadLabel = (k: number) => (k === 0 ? t('checkLead0') : k === 1 ? t('checkLead1') : t('checkLead', { n: k }));
+  const rows = c.leads
+    .map((r) => {
+      const events = r.hits + r.misses;
+      const caught = events ? t('checkCaught', { hits: r.hits, events, pct: pct(r.pod) }) : t('checkNoEvents');
+      return `<tr><td>${esc(leadLabel(r.lead_day))}</td><td>${esc(caught)}</td><td>${esc(t('checkFalse', { n: r.false_alarms, pct: pct(r.far) }))}</td></tr>`;
+    })
+    .join('');
+  const one = c.leads.find((r) => r.lead_day === 1);
+  const brier =
+    one && one.brier !== null && one.brier_raw !== null
+      ? `<p class="muted small">${esc(t('chanceBrier', { b: fmtNumber(one.brier, 3), raw: fmtNumber(one.brier_raw, 3) }))}</p>`
+      : '';
+  // One reliability line: the 60-80% bin, where a reader can check "about 70% means 7 in 10".
+  const bin = c.reliability.find((b) => b.from >= 0.59 && b.from <= 0.61);
+  const reliable =
+    bin && bin.n > 0 && bin.mean_chance !== null && bin.observed !== null
+      ? `<p class="muted small">${esc(
+          t('chanceReliable', { from: chancePct(bin.from), to: chancePct(bin.to), saw: chancePct(bin.observed), said: chancePct(bin.mean_chance) }),
+        )} (n = ${bin.n})</p>`
+      : '';
+  return `
+    <h3>${esc(t('chanceCheckTitle'))}</h3>
+    <p class="muted small">${esc(t('chanceCheckHint', { p: chancePct(c.alert) }))}</p>
+    <table class="days check">
+      <thead><tr><th></th><th>${esc(t('checkColCaught'))}</th><th>${esc(t('checkColFalse'))}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    ${brier}${reliable}
+    <p class="muted small">${esc(t('chanceCheckSource'))}</p>`;
+}
+
+export function renderCheck(fc: ForecastReplayFile | null, ch: ChanceFile | null = null): void {
   const el = $('#check');
   if (!fc) {
     el.innerHTML = '';
@@ -175,7 +250,8 @@ export function renderCheck(fc: ForecastReplayFile | null): void {
       <tbody>${rows}</tbody>
     </table>
     <p class="muted small">${esc(t('checkDefs', { threshold: fmtNumber(fc.check.threshold_pm10_ugm3, 0) }))}</p>
-    <p class="muted small">${esc(t('checkSource'))}</p>`;
+    <p class="muted small">${esc(t('checkSource'))}</p>
+    ${ch ? chanceCheckBlock(ch, pct) : ''}`;
 }
 
 // ---------- puskesmas list (OSM or the user's own CSV) ----------
@@ -421,9 +497,10 @@ export function closePanel(): void {
 }
 
 /** "How to read this map": one line per feature, in the current language. */
-export function renderHelp(withForecast: boolean, tourUrl: string, onClose: () => void): void {
+export function renderHelp(withForecast: boolean, withChance: boolean, tourUrl: string, onClose: () => void): void {
   const keys: Key[] = ['helpGlobe', 'helpColour', 'helpPillars', 'helpTimeline', 'helpPriority', 'helpBrief', 'helpModes'];
   if (withForecast) keys.push('helpForecast');
+  if (withChance) keys.push('helpChance');
   keys.push('helpData', 'helpLimits');
   openPanel(
     `<h2>${esc(t('helpTitle'))}</h2>
@@ -444,6 +521,7 @@ export function renderDistrictPanel(
   const day = d.days.find((x) => x.date === selected);
   const win = d.days.filter((x) => x.in_window);
   const change = d.days.map((x) => (x.rr ? { point: x.rr.point - 1, low: x.rr.low - 1, high: x.rr.high - 1 } : null));
+  const withChance = Boolean(out.haze_chance_model);
   const rows = win
     .map(
       (x) => `<tr class="${x.date === selected ? 'sel' : ''}">
@@ -451,12 +529,25 @@ export function renderDistrictPanel(
         <td><span class="dot ${x.status}"></span>${esc(statusLabel(x.status))}${x.duration_days ? ` <span class="muted">(${x.duration_days})</span>` : ''}</td>
         <td>${x.pm10_ugm3 === null ? '—' : fmtNumber(x.pm10_ugm3, 0)}</td>
         <td>${x.fire_count === null ? '—' : x.fire_count}</td>
-        <td>${x.rr ? fmtPercent(x.rr.point - 1) : '—'}</td></tr>`,
+        <td>${x.rr ? fmtPercent(x.rr.point - 1) : '—'}</td>${withChance ? `<td>${x.haze_chance === null ? '—' : `${chanceLabel(x.haze_chance)}%`}</td>` : ''}</tr>`,
     )
     .join('');
+  // One plain sentence first, from the engine's numbers only (outlook v3, requirement 4.2).
+  const m = d.window_mean_change;
+  const plain = !m
+    ? t('plainDistrictUnknown')
+    : d.haze_days > 0
+      ? t('plainDistrictHaze', { n: win.length, haze: d.haze_days, pct: fmtPercent(m.point), low: fmtPercent(m.low), high: fmtPercent(m.high) })
+      : t('plainDistrictClear', { n: win.length });
+  const chanceBlock = withChance
+    ? `${day?.in_window && day.haze_chance !== null ? `<div class="kpi"><div class="label">${esc(t('chanceKpi', { date: fmtDate(selected) }))}</div><div class="value">${chanceLabel(day.haze_chance)}%</div></div>` : ''}
+       ${d.peak_haze_chance ? `<p class="small">${esc(t('chancePeak', { p: chanceLabel(d.peak_haze_chance.chance), date: fmtDate(d.peak_haze_chance.date) }))}</p>` : ''}
+       <p class="muted small">${esc(t('chanceSource', { model: out.haze_chance_model as string }))}</p>`
+    : '';
   const el = openPanel(
     `<h2>${esc(d.name)}</h2>
      <p class="muted">${esc(props.province)} · ${esc(t('mappedPuskesmas', { n: props.puskesmas_mapped }))}</p>
+     <p class="plain">${esc(plain)}</p>
      <label class="field">${esc(t('district'))}:
        <select id="profile">
          <option value="kabupaten" ${d.profile === 'kabupaten' ? 'selected' : ''}>${esc(t('profile_kabupaten'))}</option>
@@ -465,9 +556,10 @@ export function renderDistrictPanel(
      ${day ? `<div class="big"><span class="dot ${day.status}"></span>${esc(statusLabel(day.status))}${day.duration_days ? ` · ${esc(t('daysInRow', { n: day.duration_days }))}` : ''}</div>` : ''}
      ${day?.rr ? `<div class="kpi"><div class="label">${esc(t('change'))}, ${esc(fmtDate(selected))}</div><div class="value">${rangeText({ point: day.rr.point - 1, low: day.rr.low - 1, high: day.rr.high - 1 }, 'percent')}</div></div>` : ''}
      ${d.window_mean_change ? `<div class="kpi"><div class="label">${esc(t('change'))} · ${esc(t('windowDays', { n: win.length }))}</div><div class="value">${rangeText(d.window_mean_change, 'percent')}</div></div>` : ''}
+     ${chanceBlock}
      ${rangeChart(d.days.map((x) => x.date), change, { unit: 'percent', windowStart: out.window_start, selected })}
      ${d.profile === 'kota' ? `<p class="note">${esc(t('shiftNote'))}</p>` : ''}
-     <table class="days"><thead><tr><th></th><th></th><th>PM10</th><th>🔥</th><th>Δ</th></tr></thead><tbody>${rows}</tbody></table>
+     <table class="days"><thead><tr><th></th><th></th><th>PM10</th><th>🔥</th><th>Δ</th>${withChance ? `<th>${esc(t('chanceCol'))}</th>` : ''}</tr></thead><tbody>${rows}</tbody></table>
      ${limitsBlock(out)}`,
     onClose,
   );
@@ -494,9 +586,20 @@ export function renderPuskesmasPanel(
   const origin = edit
     ? `<a href="${esc(edit)}" target="_blank" rel="noopener">${esc(t('osmEdit'))}</a>`
     : `<span>${esc(t('pkmUser'))}</span>`;
+  // One plain sentence first, from the engine's numbers only (outlook v3, requirement 4.3).
+  const plain = day?.expected
+    ? `${t('plainPkm', {
+        base: fmtNumber(p.baseline_visits_per_day),
+        date: fmtDate(selected),
+        point: fmtNumber(day.expected.point),
+        low: fmtNumber(day.expected.low),
+        high: fmtNumber(day.expected.high),
+      })}${p.baseline_source === 'user' ? '' : ` ${t('plainPkmDefault')}`}`
+    : t('plainPkmUnknown');
   const el = openPanel(
     `<h2>${esc(p.name)}</h2>
      <p class="muted">${esc(d.name)} · ${esc(t(`profile_${d.profile}` as Key))} · ${origin}</p>
+     <p class="plain">${esc(plain)}</p>
      ${day?.expected ? `<div class="kpi"><div class="label">${esc(t('expected'))}, ${esc(fmtDate(selected))}</div><div class="value">${rangeText(day.expected, 'visits')}</div></div>` : `<div class="kpi"><div class="value">${esc(t('status_unknown'))}</div></div>`}
      <div class="kpi"><div class="label">${esc(t('extraWindow', { n: windowDays }))}</div><div class="value">${rangeText(p.window_extra, 'visits')}</div></div>
      ${rangeChart(p.days.map((x) => x.date), p.days.map((x) => x.expected), { unit: 'visits', windowStart: out.window_start, selected, baseline: p.baseline_visits_per_day })}

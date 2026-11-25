@@ -7,7 +7,9 @@ import {
   addDays,
   asForecast,
   buildOutlookInput,
+  chanceModelFor,
   districtMean,
+  loadChance,
   loadLive,
   loadOverrides,
   loadReference,
@@ -28,6 +30,7 @@ import { createMap, hexagon, LAYER_GROUPS, type Bounds, type LayerGroup, type So
 import { renderSmoke, smokeCoordinates } from './smoke';
 import { runTour, type TourApi } from './tour';
 import type {
+  ChanceFile,
   CleanAirOutput,
   DayStatus,
   ForecastReplayFile,
@@ -67,6 +70,8 @@ interface State {
   forecast: ForecastReplayFile | null;
   /** The replay as forecast for the selected morning; null in every other view. */
   fds: Dataset | null;
+  /** Haze-day chance model of this region (outlook v3), when built and loaded. */
+  chance: ChanceFile | null;
 }
 
 type View = 'hindsight' | 'forecast';
@@ -143,7 +148,31 @@ function windowBounds(): { start: string; last: string } {
 
 function outlookInput() {
   const w = windowBounds();
-  return buildOutlookInput(S.ref, viewDs(), S.fireCounts, S.overrides, w.start, w.last);
+  // A chance only where the window is a forecast: live, or the replay as forecast.
+  const model = chanceModelFor(S.chance, S.ds.mode, Boolean(S.fds), w.start);
+  return buildOutlookInput(S.ref, viewDs(), S.fireCounts, S.overrides, w.start, w.last, model);
+}
+
+/** Load the region's chance model once; a failure is named on screen and no chance is shown. */
+async function ensureChance(): Promise<void> {
+  const info = S.ref.region.chance;
+  if (!info || S.chance?.region === S.ref.region.id) return;
+  try {
+    S.chance = await loadChance(S.ref.region.id, info.file);
+  } catch (e) {
+    S.chance = null;
+    S.ds.errors.push({ source: info.file, error: e instanceof Error ? e.message : String(e) });
+  }
+}
+
+/** Where the chance on screen comes from, for the status notes. */
+function chanceNote(): string | null {
+  if (!S.outlook.haze_chance_model || !S.chance) return null;
+  if (S.ds.mode === 'live') return t('chanceLiveNote');
+  const fold = S.chance.folds.find((f) => f.id === S.outlook.haze_chance_model);
+  if (!fold) return null;
+  const long = { day: 'numeric', month: 'short', year: 'numeric' } as const;
+  return t('chanceForecastNote', { from: fmtDate(fold.issue_dates[0], long), to: fmtDate(fold.issue_dates[1], long) });
 }
 
 function recompute(): void {
@@ -281,7 +310,7 @@ function renderSelection(): void {
     return;
   }
   if (sel.kind === 'help') {
-    ui.renderHelp(Boolean(forecastFile()), `/?tour=1&lang=${lang()}&region=${S.ref.region.id}`, clearSelection);
+    ui.renderHelp(Boolean(forecastFile()), Boolean(S.ref.region.chance), `/?tour=1&lang=${lang()}&region=${S.ref.region.id}`, clearSelection);
     return;
   }
   if (sel.kind === 'brief') {
@@ -352,13 +381,13 @@ function render(): void {
     openBrief,
   );
   renderPuskesmasList();
-  ui.renderCheck(S.fds ? S.forecast : null);
+  ui.renderCheck(S.fds ? S.forecast : null, S.fds ? S.chance : null);
   const issue = S.fds && S.forecast ? S.forecast.issue_dates.indexOf(S.selected) : -1;
   const forecastNote =
     issue >= 0 && S.forecast
       ? t('forecastLabel', { date: fmtDate(S.selected, { day: 'numeric', month: 'long', year: 'numeric' }), run: S.forecast.runs[issue] })
       : null;
-  ui.renderStatus(ds, ref.meta, imageryNote, S.notice, forecastNote);
+  ui.renderStatus(ds, ref.meta, imageryNote, S.notice, forecastNote, chanceNote());
   renderSelection();
 }
 
@@ -512,6 +541,7 @@ async function switchMode(mode: Mode, preferredDate?: string): Promise<void> {
     const fallback = m === 'live' ? ds.anchor : ds.selectable.includes(REPLAY_DEFAULT_DAY) ? REPLAY_DEFAULT_DAY : ds.selectable[0];
     S.selected = preferredDate && ds.selectable.includes(preferredDate) ? preferredDate : fallback;
     await ensureForecast();
+    await ensureChance();
     recompute();
     setUrl();
     render();
@@ -543,6 +573,7 @@ async function switchRegion(id: string, opts: { fly?: boolean; mode?: Mode; date
     S.ref = ref;
     S.selection = null;
     S.forecast = null;
+    S.chance = null;
     S.csv = { ok: null, problems: [] };
     S.map.setDistricts(ref.districts);
     await switchMode(opts.mode ?? S.ds?.mode ?? 'live', opts.date ?? (S.ds?.mode === 'replay' ? S.selected : undefined));
@@ -584,10 +615,14 @@ async function boot(): Promise<void> {
   if (!entered) {
     void regionsP.then((idx) => {
       const r = idx.regions.find((x) => x.id === params.get('region')) ?? idx.regions.find((x) => x.id === idx.default) ?? idx.regions[0];
-      ui.showIntro(regionLabel(r), () => {
-        entered = true;
-        flyIn?.();
-      });
+      ui.showIntro(
+        regionLabel(r),
+        () => {
+          entered = true;
+          flyIn?.();
+        },
+        `/?tour=1&lang=${lang()}&region=${r.id}`,
+      );
     });
   } else {
     ui.setLoading(true);
@@ -621,6 +656,7 @@ async function boot(): Promise<void> {
       view: params.get('view') === 'forecast' ? 'forecast' : 'hindsight',
       forecast: null,
       fds: null,
+      chance: null,
     };
     if (import.meta.env.DEV) (window as unknown as { sootsayer: State }).sootsayer = S;
     for (const g of Object.keys(LAYER_GROUPS) as LayerGroup[]) map.setGroupVisible(g, S.layers[g]);

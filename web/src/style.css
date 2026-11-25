@@ -256,6 +256,21 @@ table.days tr.sel { background: rgba(245, 165, 36, 0.12); }
 }
 .intro-card .tagline { font-size: 15px; margin: 4px 0 14px; color: #f2c879; }
 .intro-card p { font-size: 15.5px; }
+.intro-card { max-width: 600px; }
+.intro-card .start-title { font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; color: #f2c879; margin: 18px 0 6px; }
+.start-steps { text-align: left; margin: 0 auto 14px; padding: 12px 16px 12px 36px; max-width: 520px; font-size: 14px; line-height: 1.45;
+  background: rgba(7, 9, 14, 0.55); border: 1px solid rgba(245, 165, 36, 0.25); border-radius: 12px; }
+.start-steps li + li { margin-top: 6px; }
+.intro-actions { display: flex; gap: 10px; justify-content: center; align-items: center; flex-wrap: wrap; }
+.intro-actions .button { margin-top: 6px; }
+.intro-card p.small { font-size: 12px; margin-top: 14px; }
+/* One plain sentence at the top of a panel (outlook v3). */
+p.plain { font-size: 14px; line-height: 1.45; margin: 8px 0 10px; padding: 8px 10px; border-left: 3px solid var(--accent); background: rgba(245, 165, 36, 0.07); border-radius: 0 8px 8px 0; }
+.watch { margin: 8px 0; padding: 6px 8px; border: 1px dashed rgba(245, 165, 36, 0.45); border-radius: 10px; }
+.watch p { margin: 2px 0 4px; }
+ul.watch-list { list-style: none; padding: 0; margin: 0; }
+button.row.watch-row { grid-template-columns: 1fr auto; }
+button.row.watch-row .meta { grid-column: auto; }
 button.primary { background: var(--accent); color: #140d03; border: 0; padding: 11px 20px; border-radius: 999px; font-weight: 650; cursor: pointer; margin-top: 6px; }
 
 .loading {

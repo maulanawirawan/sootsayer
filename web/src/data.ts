@@ -4,6 +4,8 @@
 
 import type {
   AirResponse,
+  ChanceFile,
+  ChanceModel,
   DistrictCollection,
   DistrictFeature,
   FireRow,
@@ -243,6 +245,36 @@ export function asForecast(ds: Dataset, fc: ForecastReplayFile, start: string): 
   };
 }
 
+const chanceCache = new Map<string, Promise<ChanceFile>>();
+
+/** The haze-day chance model of a region (a few kB), loaded on first use. */
+export function loadChance(regionId: string, file: string): Promise<ChanceFile> {
+  const key = `${regionId}/${file}`;
+  let hit = chanceCache.get(key);
+  if (!hit) {
+    // The file name is the source label: it reads the same in both languages.
+    hit = getJson<ChanceFile>(`/data/${regionId}/${file}`, file);
+    hit.catch(() => chanceCache.delete(key));
+    chanceCache.set(key, hit);
+  }
+  return hit;
+}
+
+/**
+ * Which chance model applies (mirrors pipeline/sootsayer_pipeline/chance.py):
+ * live uses the model trained on all of October 2026, by analogy; the replay
+ * as forecast uses the fold model that did not see that issue week; the
+ * hindsight replay has no forecast, so no chance.
+ */
+export function chanceModelFor(ch: ChanceFile | null, mode: 'live' | 'replay', forecastView: boolean, windowStart: string): ChanceModel | null {
+  if (!ch) return null;
+  const engine = (m: ChanceModel): ChanceModel => ({ id: m.id, coefficients: m.coefficients });
+  if (mode === 'live') return engine(ch.final);
+  if (!forecastView) return null;
+  const fold = ch.folds.find((f) => f.issue_dates[0] <= windowStart && windowStart <= f.issue_dates[1]);
+  return fold ? engine(fold) : null;
+}
+
 /** Load the replay's fire points for the map (about 1 MB gzipped). */
 export async function loadReplayFires(regionId: string, file: string): Promise<FireRow[]> {
   const f = await getJson<ReplayFiresFile>(`/data/${regionId}/${file}`, 'NASA FIRMS (replay points)');
@@ -331,6 +363,7 @@ export function buildOutlookInput(
   o: Overrides,
   windowStart: string,
   lastDay: string,
+  chanceModel: ChanceModel | null = null,
 ): OutlookInput {
   const end = ds.days.indexOf(lastDay) >= 0 ? ds.days.indexOf(lastDay) : ds.days.length - 1;
   const days = ds.days.slice(0, end + 1);
@@ -355,5 +388,6 @@ export function buildOutlookInput(
       district_code: p.district_code,
       baseline_visits_per_day: o.baselines[p.id] ?? p.baseline ?? null,
     })),
+    haze_chance_model: chanceModel,
   };
 }
