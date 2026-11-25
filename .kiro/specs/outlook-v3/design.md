@@ -19,7 +19,8 @@ web + MCP
 ```
 
 ## Decisions
-1. **Logistic regression per lead day (MOS), not deep learning.** One month of
+### D1 Logistic regression per lead day (MOS), not deep learning
+One month of
    district-days (about 1,600 pairs per lead day and region) is far too little
    for a neural network, and a health office has to be able to read the
    method in one line. MOS is how weather services have corrected model
@@ -28,30 +29,39 @@ web + MCP
    window, both on a log scale. Alternatives considered: gradient boosting
    (more parameters than the data supports, harder to evaluate in Rust),
    persistence alone (worse than the raw forecast in the feasibility run).
-2. **The chance is an extra layer.** Haze-day classification, duration,
+### D2 The chance is an extra layer
+Haze-day classification, duration,
    relative risks and ranking stay the study's method on PM10 >= 100. The
    chance tells how likely that haze day is; it never changes a visit
    estimate.
-3. **Purged leave-one-week-out.** Neighbouring days are correlated, so a
+### D3 Purged leave-one-week-out
+Neighbouring days are correlated, so a
    random split would flatter the model. Each fold leaves out one issue week,
    plus every training pair whose target day or input day falls on a day the
    left-out week's targets cover (issue day to issue day + 4).
-4. **Fold models in the replay.** Every chance shown in the October replay
+### D4 Fold models in the replay
+Every chance shown in the October replay
    comes from a model that did not see that week. Live mode uses the model
    trained on all of October, by analogy: it was trained on the 12:00 UTC runs
    from the Atmosphere Data Store, and live mode reads the latest CAMS run
    through Open-Meteo.
-5. **Deterministic maths.** `ln` and `exp` are written with + − × ÷ and
+### D5 Deterministic maths
+`ln` and `exp` are written with + − × ÷ and
    rounding only (range reduction plus a series), because the platform libm
    does not promise identical bits on WebAssembly and native. The chance is
    rounded to 0.001.
-6. **The engine computes the test table**, from held-out chances it computes
+### D6 The engine computes the test table
+, from held-out chances it computes
    itself with the fold models, so the parity check can compare WASM, CLI and
    the stored file. scikit-learn trains; the pipeline checks that the engine
    reproduces scikit-learn's probabilities within 0.0006 (rounding is 0.0005).
-7. **Alert threshold 0.5** ("more likely than not") lives in `method.rs` with
-   the floor of 1 µg/m³, and in `docs/METHOD.md`.
-8. **Plain sentences are templates** in `web/src/i18n.ts` filled with engine
+### D7 Watch threshold 0.3
+Planned as 0.5 ("more likely than not"); changed to 0.3 during the build,
+after the held-out test showed that 0.5 caught barely more haze days than
+the raw rule (see tasks.md, "Decisions made while building"). It lives in
+`method.rs` with the floor of 1 µg/m³, and in `docs/METHOD.md`.
+### D8 Plain sentences are templates
+in `web/src/i18n.ts` filled with engine
    numbers; no number is computed in the UI.
 
 ## Data shapes
