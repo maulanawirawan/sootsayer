@@ -160,15 +160,17 @@ uv run --project mcp-server python mcp-server/server.py
 
 ## A morning briefing with Kiro Crew
 
-[Kiro Crew](https://kiro.dev/docs/crew/) runs scheduled jobs and posts to
-Telegram, Slack, Teams, and other channels. To send the Dinkes briefing every
-morning: add the Sootsayer MCP server in Crew's Integrations panel (or let
-Discover & Sync find it), then ask in chat: *"Every day at 06:00 WIB, call
-sootsayer `daily_brief` with region kalimantan, mode live, lang id, and post
-`text` exactly as written to our Telegram channel."* The text comes from the
-engine, so the job forwards numbers it did not write. (Kiro Crew 0.12.1 is
-installed on the build machine, but this scheduled job has not been set up or
-tested yet.)
+[`crew/sootsayer-morning-brief/`](crew/sootsayer-morning-brief/) is a Kiro
+Crew app: a 06:00 WIB schedule (Asia/Jakarta, shipped paused), the agent
+`sootsayer-morning-briefer`, the skill `haze-morning-brief`, and the
+Sootsayer MCP server with its seven read-only tools approved for unattended
+runs. Each morning the agent calls `daily_brief` for Kalimantan and Sumatra
+and delivers the text exactly as the engine wrote it, with the data times and
+any failed source. Set `SOOTSAYER_REPO` to your clone, then
+`kirocrew app install crew/sootsayer-morning-brief`; the
+[app's README](crew/sootsayer-morning-brief/README.md) has the steps. Checked
+on Kiro Crew 0.12.1: the manifest installs, and the launcher starts the MCP
+server, lists the seven tools and answers a `priority` call.
 
 ## The demo video is code too
 
@@ -192,7 +194,8 @@ out of the upload (the browser uses the prebuilt
 
 ## Built with Kiro
 
-- **Spec-driven:** `.kiro/specs/haze-clinic-outlook/` (v1) and
+- **The whole story:** [docs/KIRO.md](docs/KIRO.md): surfaces, specs, steering, every hook catch, tests, and the Crew app.
+- **Spec-driven:** `.kiro/specs/outlook-v3/` (the haze-day chance and the plain sentences, written before their code), `.kiro/specs/haze-clinic-outlook/` (v1) and
   `.kiro/specs/outlook-v2/` (briefing, regions, waiting room, CSV, tour,
   agents, replay as forecast) hold the requirements (EARS), design decisions,
   and tasks. The
