@@ -21,7 +21,7 @@
       "id": "district", "kind": "app", "clip": "district", "from": 0, "seconds": 14.6,
       "captions": [
         { "at": 0.2, "until": 3.3, "text": "Where should posko and oxygen houses *open first*?", "sub": "Districts ranked by the expected change in respiratory visits", "ring": "row" },
-        { "at": 3.5, "until": 7.9, "text": "Pulang Pisau: *+88%* respiratory visits expected.", "sub": "95% range +14% to +211% · mean over 14–18 Oct 2026", "ring": "kpiWindow", "hit": true },
+        { "at": 3.5, "until": 7.9, "text": "Pulang Pisau: *+88%* respiratory visits expected.", "sub": "95% range +14% to +211% · mean over 14–18 Oct 2026 · said first in one plain sentence", "ring": "plain", "hit": true },
         { "at": 8.1, "until": 10.6, "text": "A fire-haze day, *28 days in a row*.", "sub": "The study's effect grows with the length of the haze", "ring": "status" },
         { "at": 10.9, "until": 14.5, "text": "The study's *limits* stay next to the numbers.", "sub": "One study, six puskesmas, 2015–2019 · applied by analogy outside Central Kalimantan", "ring": "limits" }
       ]
@@ -30,7 +30,7 @@
       "id": "puskesmas", "kind": "app", "clip": "puskesmas", "from": 0, "seconds": 14,
       "captions": [
         { "at": 0.2, "until": 3.6, "text": "Click a pillar: *one puskesmas*.", "sub": "The camera glides in and leaves room for the panel" },
-        { "at": 3.8, "until": 8.0, "text": "Puskesmas Jabiren, 14 Oct: *4.7* respiratory visits a day expected.", "sub": "95% range 2.8 to 7.8 · usual 2.5 (study default, editable by the puskesmas)", "ring": "kpi" },
+        { "at": 3.8, "until": 8.0, "text": "Puskesmas Jabiren, 14 Oct: *4.7* respiratory visits a day expected.", "sub": "95% range 2.8 to 7.8 · usual 2.5 (study default, editable by the puskesmas) · in plain words first", "ring": "plain" },
         { "at": 8.4, "until": 11.2, "text": "Plan a *clean-air waiting room*.", "sub": "Corsi–Rosenthal box preset from a US EPA test (Holder et al. 2022)", "ring": "cleanAir" },
         { "at": 11.4, "until": 13.9, "text": "And how smoky the room gets, *with and without a cleaner*.", "sub": "Measured smoke infiltration (Barn et al. 2008) · not a 95% interval, and the app says so", "ring": "indoor" }
       ]
@@ -51,8 +51,8 @@
     { "id": "forecast", "kind": "app", "clip": "forecast-view", "from": 0, "seconds": 15, "optional": true, "chapter": "Can you trust it?",
       "captions": [
         { "at": 2.7, "until": 6.4, "text": "What did the forecast say *at 06:00 that morning*?", "sub": "The CAMS run of 12:00 UTC the day before, from the Copernicus Atmosphere Data Store", "ring": "views" },
-        { "at": 6.6, "until": 10.4, "text": "The app *checks itself*, morning by morning.", "sub": "District haze days the forecast caught, and its false alarms · Kalimantan, 1–31 Oct 2026", "ring": "check" },
-        { "at": 10.6, "until": 14.9, "text": "One day ahead: *75%* caught, 16% of warnings false.", "sub": "Sumatra: 49% · forecast against the model's own later estimate, not stations · the app says so", "ring": "row1" }
+        { "at": 6.6, "until": 10.4, "text": "Machine learning turns it into a *haze-day chance*.", "sub": "Logistic regression per lead day (scikit-learn), run by the same Rust engine · each week tested by a model that never saw it", "ring": "chance" },
+        { "at": 10.6, "until": 14.9, "text": "*Watch*: haze the raw forecast would miss.", "sub": "Chance ≥ 30% · one day ahead: 88% of Kalimantan's haze days caught (raw forecast 75%), 25% of warnings false (16%)", "ring": "watch" }
       ]
     },
     { "id": "kiro-spec", "kind": "kiro", "panel": "spec", "seconds": 10.5, "chapter": "Built with Kiro",

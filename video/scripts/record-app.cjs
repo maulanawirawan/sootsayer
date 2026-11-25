@@ -56,6 +56,7 @@ const CLIPS = {
     ],
     marks: [
       { at: 0.5, name: 'row', selector: 'button.row[data-code="KT-pulang-pisau"]' },
+      { at: 4.0, name: 'plain', selector: '#right p.plain' },
       { at: 4.0, name: 'status', selector: '#right .big' },
       { at: 4.0, name: 'kpiWindow', selector: '#right .kpi', contains: '5 days' },
       { at: 11.8, name: 'limits', selector: '#right details.limits ul' },
@@ -72,6 +73,7 @@ const CLIPS = {
       { at: 11.0, eval: () => document.querySelector('#ca-indoor')?.scrollIntoView({ block: 'end' }) },
     ],
     marks: [
+      { at: 4.2, name: 'plain', selector: '#right p.plain' },
       { at: 4.2, name: 'kpi', selector: '#right .kpi', contains: 'Expected respiratory visits per day' },
       { at: 9.4, name: 'cleanAir', selector: '#ca-out' },
       { at: 11.8, name: 'indoor', selector: '#ca-indoor table' },
@@ -98,18 +100,21 @@ const CLIPS = {
   },
   // Opens under a chapter card (0-2.55 s), so the click comes after it has burnt away.
   'forecast-view': {
-    url: '/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=en',
+    // 15 Oct: the forecast of that morning, its haze-day chance, and the watch list (outlook v3).
+    url: '/?region=kalimantan&mode=replay&date=2026-10-15&intro=0&lang=en',
     prepare: 7600,
     seconds: 15,
     steps: [
       { at: 3.9, clickText: ['#views button', 'What was forecast'] },
-      { at: 6.0, eval: () => document.querySelector('#check')?.scrollIntoView({ block: 'start' }) },
+      { at: 6.1, click: 'button.row[data-code="KT-pulang-pisau"]' },
+      { at: 10.0, eval: () => document.querySelector('#priority .watch')?.scrollIntoView({ block: 'center' }) },
     ],
     marks: [
       { at: 2.0, name: 'views', selector: '#views' },
       { at: 5.0, name: 'banner', selector: '#status .banner.note' },
-      { at: 6.6, name: 'check', selector: '#check table.check' },
-      { at: 6.6, name: 'row1', selector: '#check table.check tbody tr:nth-child(2)' },
+      { at: 7.6, name: 'chance', selector: '#right .kpi', contains: 'Chance of a haze day' },
+      { at: 7.6, name: 'chanceSource', selector: '#right p.small', contains: 'Chance =' },
+      { at: 10.8, name: 'watch', selector: '#priority .watch' },
     ],
   },
   // The night image of 14 Oct exists on NASA GIBS; today's may not be processed yet.

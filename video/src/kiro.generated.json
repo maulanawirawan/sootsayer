@@ -1,10 +1,10 @@
 {
  "counts": {
-  "specs": 2,
-  "requirements": 12,
-  "criteria": 48,
-  "tasks": 22,
-  "decisions": 10
+  "specs": 3,
+  "requirements": 16,
+  "criteria": 70,
+  "tasks": 32,
+  "decisions": 18
  },
  "req1": [
   "## Requirement 1 — A briefing a health office can send",
@@ -71,29 +71,41 @@
   "props": [
    "test indoor_estimate_is_ordered_and_lower_with_a_cleaner ... ok",
    "test purifier_count_covers_the_room_and_is_minimal ... ok",
+   "test more_forecast_smoke_never_lowers_the_chance ... ok",
    "test kabupaten_effect_never_shrinks_during_an_unbroken_run ... ok",
    "test clear_days_leave_visits_unchanged_and_unknown_days_give_nothing ... ok",
    "test ranges_are_always_ordered ... ok",
+   "test chance_is_a_probability_on_window_days_only ... ok",
    "test every_brief_carries_ranges_limits_and_the_disclaimer ... ok",
    "test same_input_same_output ... ok",
    "test forecast_check_counts_every_pair_once_and_is_symmetric ... ok"
   ],
   "results": [
-   "test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
-   "test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.76s"
+   "test result: ok. 38 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s",
+   "test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.84s"
   ]
  },
  "parity": [
-  "identical  kalimantan outlook             wasm 7b95b050e964bf00 cli 7b95b050e964bf00 2032236 bytes",
+  "identical  kalimantan outlook             wasm c250bc8212e0a822 cli c250bc8212e0a822 2070085 bytes",
   "identical  kalimantan brief (id)          wasm 2d9eef88db130ba9 cli 2d9eef88db130ba9 1935 bytes",
   "identical  kalimantan brief (en)          wasm 532a0357f029ca8c cli 532a0357f029ca8c 1934 bytes",
-  "identical  sumatra outlook                wasm 75344504b01ef4e7 cli 75344504b01ef4e7 1108884 bytes",
+  "identical  sumatra outlook                wasm 02d579501c1e2b16 cli 02d579501c1e2b16 1135933 bytes",
   "identical  sumatra brief (id)             wasm 4c3d9fe70a3bedd4 cli 4c3d9fe70a3bedd4 1983 bytes",
   "identical  sumatra brief (en)             wasm 1f29867947b71f93 cli 1f29867947b71f93 1982 bytes",
   "identical  kalimantan forecast check      wasm ff00e175f52bb6b8 cli ff00e175f52bb6b8 1530 bytes",
   "identical  kalimantan check vs pipeline   8680 pairs",
   "identical  sumatra forecast check         wasm b31c04eb9fbc1bc1 cli b31c04eb9fbc1bc1 1528 bytes",
-  "identical  sumatra check vs pipeline      6200 pairs"
+  "identical  sumatra check vs pipeline      6200 pairs",
+  "identical  kalimantan outlook + chance    wasm a68ffa954935abbd cli a68ffa954935abbd 2081712 bytes",
+  "identical  kalimantan brief + chance (id) wasm 5dbad5b47bf28213 cli 5dbad5b47bf28213 2585 bytes",
+  "identical  kalimantan brief + chance (en) wasm df18e73e6f7ab45f cli df18e73e6f7ab45f 2524 bytes",
+  "identical  kalimantan chance check        wasm ac722aa7e42b7f49 cli ac722aa7e42b7f49 2245 bytes",
+  "identical  kalimantan chance vs pipeline  8680 pairs",
+  "identical  sumatra outlook + chance       wasm 08256c28d45199bd cli 08256c28d45199bd 1120910 bytes",
+  "identical  sumatra brief + chance (id)    wasm 09834c1c5705f2b1 cli 09834c1c5705f2b1 2783 bytes",
+  "identical  sumatra brief + chance (en)    wasm 79c07790c3a7efb9 cli 79c07790c3a7efb9 2719 bytes",
+  "identical  sumatra chance check           wasm b66d742fea11200c cli b66d742fea11200c 2223 bytes",
+  "identical  sumatra chance vs pipeline     6200 pairs"
  ],
  "mcp": {
   "tools": [
@@ -134,10 +146,10 @@
    "fix": "Fall back to hindsight and name the source"
   },
   {
-   "hook": "house-rules-ui-check",
-   "file": "web/src/ui.ts",
-   "what": "The legend's ' WHO' tick label was hard-coded outside i18n.ts.",
-   "fix": "Moved to i18n.ts (id + en)"
+   "hook": "method-citation-check",
+   "file": "engine/src/method.rs",
+   "what": "METHOD.md lacked two new constants of the haze-day chance model (log floor and watch level).",
+   "fix": "Added to METHOD.md, value for value"
   }
  ]
 }

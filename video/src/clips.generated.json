@@ -78,11 +78,22 @@
     }
    },
    {
+    "name": "plain",
+    "t": 4,
+    "box": {
+     "x": 1171,
+     "y": 184.78125,
+     "w": 356,
+     "h": 97.1875,
+     "text": "Haze days in these 5 days: 5. Respiratory visits to puskesmas are expected to change by +88% compared with a normal day (95% range +14% to +211%)."
+    }
+   },
+   {
     "name": "status",
     "t": 4,
     "box": {
      "x": 1171,
-     "y": 247.90625,
+     "y": 355.09375,
      "w": 356,
      "h": 21.75,
      "text": "Fire-haze day · 28 days in a row"
@@ -93,7 +104,7 @@
     "t": 4,
     "box": {
      "x": 1171,
-     "y": 336.046875,
+     "y": 443.234375,
      "w": 356,
      "h": 46.390625,
      "text": "Change in respiratory visits · mean over 5 days\n+88% (+14% … +211%)"
@@ -104,7 +115,7 @@
     "t": 11.8,
     "box": {
      "x": 1171,
-     "y": 402.9375,
+     "y": 403.125,
      "w": 356,
      "h": 208.6875,
      "text": "One study: six puskesmas in Palangka Raya and Pulang Pisau, 2015-2019.\nThe effect was clear in Pulang Pisau (kabupaten) and absent in Palangka Raya city (kota); the authors call the overall result inconclusive.\nOutside Central Kalimantan the study's estimates are applied by analogy: other Kalimantan provinces and Sumatra were not part of the study.\nRelative risks are cumulative over lag 0-5 days a"
@@ -120,14 +131,14 @@
    {
     "t": 10.6,
     "x": 1349,
-    "y": 739.875
+    "y": 847.0625
    }
   ],
   "errors": []
  },
  "forecast-view": {
   "name": "forecast-view",
-  "url": "/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=en",
+  "url": "/?region=kalimantan&mode=replay&date=2026-10-15&intro=0&lang=en",
   "fps": 30,
   "frames": 450,
   "seconds": 15,
@@ -155,30 +166,41 @@
      "x": 29,
      "y": 91,
      "w": 310,
-     "h": 90.5,
-     "text": "As forecast: the CAMS forecast available at 06:00 WIB on 14 October 2026 (run 2026-10-13T12:00Z). Earlier days use archived data; fires and the satellite image show what was observed that day."
+     "h": 54.25,
+     "text": "Haze-day chance from a model that never saw the week 15 Oct 2026 to 21 Oct 2026."
     }
    },
    {
-    "name": "check",
-    "t": 6.6,
+    "name": "chance",
+    "t": 7.6,
     "box": {
-     "x": 29,
-     "y": 264.296875,
-     "w": 310,
-     "h": 177.96875,
-     "text": "\tHaze days caught\tFalse alarms (share of warnings)\nFirst day\t425 of 486 · 87%\t54 · 11%\n+1 day\t361 of 480 · 75%\t69 · 16%\n+2 days\t331 of 470 · 70%\t70 · 17%\n+3 days\t326 of 455 · 72%\t84 · 20%\n+4 days\t311 of 438 · 71%\t84 · 21%"
+     "x": 1171,
+     "y": 499.625,
+     "w": 356,
+     "h": 46.390625,
+     "text": "Chance of a haze day, 15 Oct\n>99%"
     }
    },
    {
-    "name": "row1",
-    "t": 6.6,
+    "name": "chanceSource",
+    "t": 7.6,
+    "box": {
+     "x": 1171,
+     "y": 587.40625,
+     "w": 356,
+     "h": 69.5625,
+     "text": "Chance = a statistical correction of the CAMS forecast (logistic regression, model kalimantan-2026-10-without-15-21-oct). It is a chance, not a 95% range. Tested on weeks it did not see, against the model’s own later estimate, not stations."
+    }
+   },
+   {
+    "name": "watch",
+    "t": 10.8,
     "box": {
      "x": 29,
-     "y": 333.265625,
+     "y": 295.78125,
      "w": 310,
-     "h": 27.125,
-     "text": "+1 day\t361 of 480 · 75%\t69 · 16%"
+     "h": 195.96875,
+     "text": "Watch: no haze day in the forecast yet, but a chance of 30% or more\n\nMelawi\nchance 66% · 15 Oct\nKayong Utara\nchance 64% · 15 Oct\nBanjar\nchance 51% · 19 Oct\nBarito Utara\nchance 34% · 15 Oct"
     }
    }
   ],
@@ -187,6 +209,11 @@
     "t": 3.9,
     "x": 810.5703125,
     "y": 40.0859375
+   },
+   {
+    "t": 6.1,
+    "x": 184,
+    "y": 614.984375
    }
   ],
   "errors": []
@@ -207,28 +234,30 @@
     "name": "intro",
     "t": 1,
     "box": {
-     "x": 530,
-     "y": 295.171875,
-     "w": 540,
-     "h": 309.640625
+     "x": 500,
+     "y": 175.453125,
+     "w": 600,
+     "h": 549.078125,
+     "text": "Sootsayer\n\nThe soot-sayer for community clinics\n\nSatellites see the fire. Air apps see the smoke. Sootsayer estimates which puskesmas will fill with breathless patients over the next five days.\n\nSTART HERE\nLook at the map. District colour = expected change in respiratory visits. Pillars = expected patients at each puskesmas.\nClick a district in the Priority list. One sentence explains the coming d"
     }
    },
    {
     "name": "enter",
     "t": 1,
     "box": {
-     "x": 722.328125,
-     "y": 534.515625,
+     "x": 608.90625,
+     "y": 593.453125,
      "w": 155.328125,
-     "h": 42.296875
+     "h": 42.296875,
+     "text": "Fly to Kalimantan"
     }
    }
   ],
   "clicks": [
    {
     "t": 6,
-    "x": 799.9921875,
-    "y": 555.6640625
+    "x": 686.5703125,
+    "y": 614.6015625
    }
   ],
   "errors": []
@@ -313,13 +342,25 @@
   "dpr": 1.2,
   "marks": [
    {
-    "name": "kpi",
+    "name": "plain",
     "t": 4.2,
     "box": {
      "x": 1171,
      "y": 184.78125,
      "w": 356,
-     "h": 46.390625
+     "h": 97.1875,
+     "text": "Usually about 2.5 respiratory patients a day. On 14 Oct about 4.7 are expected (95% range 2.8 to 7.8). The usual number comes from the study; replace it with your own records below."
+    }
+   },
+   {
+    "name": "kpi",
+    "t": 4.2,
+    "box": {
+     "x": 1171,
+     "y": 291.96875,
+     "w": 356,
+     "h": 46.390625,
+     "text": "Expected respiratory visits per day, 14 Oct\n4.7 (2.8 … 7.8)"
     }
    },
    {
@@ -327,9 +368,10 @@
     "t": 9.4,
     "box": {
      "x": 1171,
-     "y": 415.03125,
+     "y": 414.21875,
      "w": 356,
-     "h": 185.515625
+     "h": 185.515625,
+     "text": "2 ×\nNeeds 2 units for 5 clean air changes per hour (720 m³/h).\nUS CDC/NIOSH 'Aim for 5' (Ventilation in Buildings, 2023): at least 5 air changes per hour of clean air in occupied rooms. Set for respiratory viruses; used here as a practical target for a clean-air room during smoke.\nHolder et al. 2022, Indoor Air 32:e13163 (US EPA chamber test, simulated wildfire smoke): Corsi-Rosenthal box with fou"
     }
    },
    {
@@ -337,9 +379,10 @@
     "t": 11.8,
     "box": {
      "x": 1171,
-     "y": 448.84375,
+     "y": 449.03125,
      "w": 356,
-     "h": 81.375
+     "h": 81.375,
+     "text": "Outdoors (CAMS, district mean)\t553 µg/m³\nWithout air cleaners\t149 … 337 µg/m³\nWith HEPA air cleaners\t55 … 105 µg/m³"
     }
    }
   ],
@@ -352,7 +395,7 @@
    {
     "t": 8.6,
     "x": 1294.75,
-    "y": 394.3359375
+    "y": 393.5234375
    }
   ],
   "errors": []

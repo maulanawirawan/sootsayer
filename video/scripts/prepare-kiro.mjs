@@ -1,4 +1,4 @@
-﻿// Collects the real Kiro artifacts and real command output the "Built with
+// Collects the real Kiro artifacts and real command output the "Built with
 // Kiro" shots typeset: spec excerpts and counts, steering house rules, hook
 // definitions, test and parity output, and a real daily_brief result from the
 // MCP server's tool function. Nothing is written by hand here.
@@ -28,7 +28,7 @@ function paragraphs(lines) {
 }
 
 // Spec counts, from the files
-const specs = ['haze-clinic-outlook', 'outlook-v2'];
+const specs = ['haze-clinic-outlook', 'outlook-v2', 'outlook-v3'];
 let requirements = 0;
 let criteria = 0;
 let tasks = 0;
@@ -84,7 +84,7 @@ const data = {
   findings: [
     { hook: 'house-rules-ui-check', file: 'web/src/data.ts', what: 'An English source label would have appeared inside the Indonesian briefing.', fix: 'Source name and run time only' },
     { hook: 'house-rules-ui-check', file: 'web/src/main.ts', what: 'A failed forecast load would have kept the "What was forecast" label over hindsight data.', fix: 'Fall back to hindsight and name the source' },
-    { hook: 'house-rules-ui-check', file: 'web/src/ui.ts', what: "The legend's ' WHO' tick label was hard-coded outside i18n.ts.", fix: 'Moved to i18n.ts (id + en)' },
+    { hook: 'method-citation-check', file: 'engine/src/method.rs', what: 'METHOD.md lacked two new constants of the haze-day chance model (log floor and watch level).', fix: 'Added to METHOD.md, value for value' },
   ],
 };
 fs.writeFileSync(out, JSON.stringify(data, null, 1));

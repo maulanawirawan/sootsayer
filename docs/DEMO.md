@@ -18,14 +18,14 @@ queue (0:30) · 3/4 Can you trust it? (1:40) · 4/4 Built with Kiro (1:55).
 | 2 | 0:08 | the 9,766 NASA FIRMS detections of 14 Oct ignite as embers; the counter counts them | *9,766* satellite fire detections in one day. |
 | 3 | 0:14 | the page darkens; the CAMS PM2.5 of that day becomes hatching | *At least 425,167* respiratory infections from fire haze, 20 Aug – 5 Nov. |
 | 4 | 0:20 | 339 OpenStreetMap puskesmas appear as rings, over a heartbeat | Satellites see the fire. Air apps see the smoke. *Nobody tells the clinics who is coming.* |
-| 5 | 0:25 | the paper burns away from the fires and reveals the real app; one big hit | (the app's own title card) |
+| 5 | 0:25 | the paper burns away from the fires and reveals the real app; one big hit | (the app's start card: three plain steps) |
 | 6 | 0:30 | real app: fly-in from the globe to Kalimantan | A five-day haze outlook for *every district and clinic*. · Kalimantan: 56 districts, *339 mapped puskesmas*. |
 | 7 | 0:40 | replay 1 → 14 Oct at 1.5×; the camera pushes onto the timeline, the legend, the pillars | October 2026, *replayed day by day*. · Haze day: PM10 ≥ 100 µg/m³. With a satellite fire: *fire-haze day*. · Pillars: *expected respiratory visits* at each puskesmas. |
-| 8 | 0:53 | Pulang Pisau: the ranked row, the 5-day change (one hit), the run of fire-haze days, the method limits | Where should posko and oxygen houses *open first*? · Pulang Pisau: *+88%* respiratory visits expected (95% range +14% to +211%). · A fire-haze day, *28 days in a row*. · The study's *limits* stay next to the numbers. |
-| 9 | 1:08 | Puskesmas Jabiren: visits, clean-air room with the Corsi–Rosenthal preset, indoor PM2.5 | Puskesmas Jabiren, 14 Oct: *4.7* respiratory visits a day expected (2.8 to 7.8). · Plan a *clean-air waiting room*. |
+| 8 | 0:53 | Pulang Pisau: the ranked row, the plain sentence with the 5-day change (one hit), the run of fire-haze days, the method limits | Where should posko and oxygen houses *open first*? · Pulang Pisau: *+88%* respiratory visits expected (95% range +14% to +211%). · A fire-haze day, *28 days in a row*. · The study's *limits* stay next to the numbers. |
+| 9 | 1:08 | Puskesmas Jabiren: the plain sentence with the visits, clean-air room with the Corsi–Rosenthal preset, indoor PM2.5 | Puskesmas Jabiren, 14 Oct: *4.7* respiratory visits a day expected (2.8 to 7.8). · Plan a *clean-air waiting room*. |
 | 10 | 1:22 | the briefing for the health office, in English; push-in on Share and on the first ranked line | One button: a briefing the health office can *send as is*. · Written by the *Rust engine*, not a language model. |
 | 11 | 1:33 | Sumatra | *Sumatra* too: Riau, Jambi, South Sumatra. |
-| 12 | 1:40 | chapter card "Can you trust it?" burns away into the "What was forecast" view and its check card | What did the forecast say *at 06:00 that morning*? · The app *checks itself*, morning by morning. · One day ahead: *75%* caught, 16% of warnings false (Sumatra: 49%). |
+| 12 | 1:40 | chapter card "Can you trust it?" burns away into the "What was forecast" view of 15 Oct: the haze-day chance in Pulang Pisau's panel, then the Watch list | What did the forecast say *at 06:00 that morning*? · Machine learning turns it into a *haze-day chance*. · *Watch*: haze the raw forecast would miss. |
 | 13 | 1:55 | chapter card "Built with Kiro" burns away into the real spec | *Spec-driven*: requirements, design decisions, tasks. |
 | 14 | 2:06 | steering house rules, the hooks, and their real findings stamped CAUGHT BY HOOK → fixed | Steering sets the house rules. *Hooks* check every edit against them. |
 | 15 | 2:16 | the real `cargo test` and parity output | *Property-based tests*, and one engine everywhere. |
@@ -34,10 +34,11 @@ queue (0:30) · 3/4 Can you trust it? (1:40) · 4/4 Built with Kiro (1:55).
 | 18 | 2:41 | live mode as recorded that day (12 Nov, no haze, and the subtitle says so) | Live: *the next five days*, every morning. |
 | 19 | 2:47 | end card: riser and hit, embers, the links, and the credits every data source asks for | Sootsayer — from the fire pixel to the clinic queue |
 
-The forecast figures in shot 12 are the app's own check of October 2026
-(lead day 1: Kalimantan 361 of 480 district haze days caught, 69 false
-alarms; Sumatra 133 of 274). They compare the forecast with the model's own
-later estimate, not with stations, and the app says so.
+The figures in shot 12 are the app's own held-out test of the haze-day chance
+(one day ahead, Kalimantan: a chance of 30% or more caught 421 of 480 district
+haze days, the raw forecast 361; 138 false alarms against 69). Each week is
+scored by a model that never saw it, against the model's own later estimate,
+not stations, and the app says so next to the numbers.
 
 ## Sound
 Original, synthesised in `video/scripts/score.py`; every cue is read from the

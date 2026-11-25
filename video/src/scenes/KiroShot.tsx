@@ -155,7 +155,8 @@ function Tests({ t }: { t: number }) {
       </Window>
       <Window title="node web/scripts/check-parity.mjs   (WebAssembly vs native CLI)">
         <Typed
-          lines={K.parity}
+          // One region's lines fit the window: outlook, briefing, forecast check, chance.
+          lines={K.parity.filter((l: string) => l.includes('kalimantan'))}
           t={t}
           at={3.6}
           per={0.35}
@@ -166,7 +167,7 @@ function Tests({ t }: { t: number }) {
             return (
               <span>
                 <span style={{ color: GREEN }}>identical </span>
-                <span style={{ color: INK }}>{m[2].padEnd(26)}</span>
+                <span style={{ color: INK }}>{m[2].padEnd(31)}</span>
                 <span style={{ color: MUTED }}> wasm </span>
                 <span style={{ color: EMBER }}>{m[3]}</span>
                 <span style={{ color: MUTED }}> cli </span>
