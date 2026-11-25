@@ -44,6 +44,42 @@ Each region lives in `web/public/data/<region>/`, listed in
   Store instead, which needs a free account.
 - **Proprietary basemaps or 3D tiles** (Google, Mapbox, Esri, Cesium ion).
 
+## Permissions and required notices
+
+No source needs a separate approval. Two need a free account at build time
+only, and both are in place: a NASA FIRMS MAP_KEY (replay fires) and an
+Atmosphere Data Store account with its licences accepted (`cc-by` rev 1,
+`terms-of-use-ads` rev 13, privacy statement rev 1; checked through the API).
+The live app needs no key.
+
+| Source | Condition | Where the notice is shown |
+|---|---|---|
+| Copernicus CAMS via the Atmosphere Data Store | CC BY 4.0; cite the catalogue entry (DOI 10.24381/04a0b097) and add "Contains modified Copernicus Atmosphere Monitoring Service information 2026" with the EC/ECMWF disclaimer; no implied endorsement | app footer, check card, forecast files (`source`), video end card, this file |
+| Copernicus CAMS via Open-Meteo | CC BY 4.0; free API for non-commercial use only (no ads, no subscriptions: Sootsayer has neither) and under 600 calls/min, 5,000/h, 10,000/day | app footer, video end card |
+| NASA FIRMS (VIIRS NOAA-20 375 m, NASA LANCE) | open data; NASA asks users to acknowledge FIRMS, LANCE and ESDIS ([citation page](https://www.earthdata.nasa.gov/learn/find-data/near-real-time/firms)) | app footer, video end card |
+| NASA GIBS | open; NASA asks users to acknowledge GIBS as part of EOSDIS ([citation page](https://earthdata.nasa.gov/earth-observation-data/near-real-time/citation)) | app footer, video end card |
+| Sentinel-2 cloudless 2016 (EOX) | CC BY 4.0, commercial use allowed; required wording "Sentinel-2 cloudless - https://s2maps.eu by EOX IT Services GmbH (Contains modified Copernicus Sentinel data 2016 & 2017)", legible and near the map | app footer, video end card |
+| AWS Terrain Tiles | attribution of the elevation sources required ([full list](https://github.com/tilezen/joerd/blob/master/docs/attribution.md)); for this region: SRTM and GMTED2010 courtesy of the U.S. Geological Survey, ETOPO1 U.S. NOAA | app footer, video end card |
+| OpenFreeMap / OpenMapTiles | free, commercial use allowed; in video and print the notice "OpenFreeMap © OpenMapTiles Data from OpenStreetMap" | app footer, video end card |
+| OpenStreetMap (puskesmas, province names) | ODbL 1.0: "© OpenStreetMap contributors"; a derived database must stay ODbL (see below) | app footer, video end card |
+| geoBoundaries IDN ADM2 | CC BY 3.0 IGO; cite geoBoundaries (Runfola et al. 2020, PLoS ONE 15(4): e0231866) | app footer, video end card, this file |
+| Natural Earth (video coastlines) | public domain | video subtitle and end card |
+| Fonts in the video (Inter, Caveat, JetBrains Mono, Cormorant Garamond) | SIL Open Font License | video/README.md |
+| Libraries | MapLibre GL JS (BSD-3-Clause), three.js (MIT), Remotion (free license for individuals and teams up to 3), others under their own open-source licences | `package.json` files |
+
+### Licences of the data files in this repository
+The code is MIT. The generated data keeps the licence of its source:
+- `web/public/data/*/puskesmas.json`: a derived database of OpenStreetMap,
+  © OpenStreetMap contributors, available under the
+  [ODbL 1.0](https://opendatacommons.org/licenses/odbl/1-0/).
+- `web/public/data/*/districts.geojson`: geoBoundaries ADM2 (CC BY 3.0 IGO),
+  with province names from geoBoundaries ADM1 (OpenStreetMap, ODbL 1.0).
+- `web/public/data/*/replay-2026-10.json`: Copernicus CAMS via Open-Meteo,
+  CC BY 4.0.
+- `web/public/data/*/replay-2026-10-forecast.json`: Copernicus CAMS via the
+  Atmosphere Data Store, CC BY 4.0, with the notice in its `source` field.
+- `web/public/data/*/replay-2026-10-fires.json`: NASA FIRMS, open data.
+
 ## Freshness and fair use
 
 - `/api/air` is cached at the edge for 6 hours and in a warm function for

@@ -48,10 +48,11 @@
         { "at": 0.3, "until": 7.4, "text": "*Sumatra* too: Riau, Jambi, South Sumatra.", "sub": "Regions are data packs: 40 more districts, the same engine" }
       ]
     },
-    { "id": "forecast", "kind": "app", "clip": "forecast-view", "from": 0, "seconds": 12, "optional": true, "chapter": "Can you trust it?",
+    { "id": "forecast", "kind": "app", "clip": "forecast-view", "from": 0, "seconds": 15, "optional": true, "chapter": "Can you trust it?",
       "captions": [
-        { "at": 2.7, "until": 6.6, "text": "What did the forecast say *at 06:00 that morning*?", "sub": "The CAMS run available that morning, from the Copernicus Atmosphere Data Store", "ring": "views" },
-        { "at": 6.8, "until": 11.9, "text": "The app *checks itself*: haze days caught, missed, raised falsely.", "sub": "Forecast against the model's later estimate, not stations · and the app says so", "ring": "check" }
+        { "at": 2.7, "until": 6.4, "text": "What did the forecast say *at 06:00 that morning*?", "sub": "The CAMS run of 12:00 UTC the day before, from the Copernicus Atmosphere Data Store", "ring": "views" },
+        { "at": 6.6, "until": 10.4, "text": "The app *checks itself*, morning by morning.", "sub": "District haze days the forecast caught, and its false alarms · Kalimantan, 1–31 Oct 2026", "ring": "check" },
+        { "at": 10.6, "until": 14.9, "text": "One day ahead: *75%* caught, 16% of warnings false.", "sub": "Sumatra: 49% · forecast against the model's own later estimate, not stations · the app says so", "ring": "row1" }
       ]
     },
     { "id": "kiro-spec", "kind": "kiro", "panel": "spec", "seconds": 10.5, "chapter": "Built with Kiro",
@@ -70,6 +71,6 @@
       "id": "live", "kind": "app", "clip": "live-today", "from": 0, "seconds": 5.5,
       "captions": [{ "at": 0.3, "until": 5.4, "text": "Live: *the next five days*, every morning.", "sub": "{liveNote}", "ring": "nohaze" }]
     },
-    { "id": "end", "kind": "end", "seconds": 7 }
+    { "id": "end", "kind": "end", "seconds": 8 }
   ]
 }
