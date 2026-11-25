@@ -252,6 +252,15 @@ def write_api_grid() -> None:
     path.write_text(text, encoding="utf-8", newline="\n")
 
 
+def chance_entry(r: Region) -> dict | None:
+    """The haze-day chance model of a region (build_chance), if built."""
+    path = r.data_dir / "chance-2026-10.json"
+    if not path.exists():
+        return None
+    ch = json.loads(path.read_text(encoding="utf-8"))
+    return {"file": path.name, "model": ch["final"]["id"], "generated_at": ch["generated_at"]}
+
+
 def write_index() -> dict:
     """web/public/data/regions.json: which regions exist and what each has."""
     regions = []
@@ -283,6 +292,7 @@ def write_index() -> dict:
             "puskesmas": meta["counts"]["puskesmas"],
             "reference_generated_at": meta["generated_at"],
             "replay": replay,
+            "chance": chance_entry(r),
         })
     index = {"default": DEFAULT_REGION, "regions": regions}
     write_json(WEB_DATA / "regions.json", index)

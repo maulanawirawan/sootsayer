@@ -135,6 +135,84 @@ for (const region of regions.filter((r) => r.replay?.forecast)) {
   console.log(`${same ? 'identical' : 'MISMATCH '}  ${`${region.id} check vs pipeline`.padEnd(30)} ${pairs.length} pairs`);
   if (!same) failed = true;
 }
+// Haze-day chance (outlook v3): a forecast-mode outlook and briefing with the
+// fold model of that week, and the held-out test table, WASM == CLI ==
+// pipeline. Week boundaries as in pipeline/sootsayer_pipeline/build_chance.py.
+const plus = (iso, n) => {
+  const d = new Date(`${iso}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+};
+const engineModel = (m) => ({ id: m.id, coefficients: m.coefficients });
+const foldOf = (ch, iso) => ch.folds.findIndex((f) => f.issue_dates[0] <= iso && iso <= f.issue_dates[1]);
+for (const region of regions.filter((r) => r.chance && r.replay?.forecast)) {
+  const ch = read(region.id, region.chance.file);
+  const fc = read(region.id, region.replay.forecast.file);
+  const replay = read(region.id, region.replay.file);
+  const districts = read(region.id, 'districts.geojson').features;
+  const puskesmas = read(region.id, 'puskesmas.json');
+  // 1. The outlook the app computes in "What was forecast" on `day`.
+  const issue = fc.issue_dates.indexOf(day);
+  const d0 = replay.days.indexOf(day);
+  const end = Math.min(d0 + fc.lead_days - 1, replay.days.length - 1);
+  const days = replay.days.slice(0, end + 1);
+  const cells = replay.cams.pm10_ugm3.map((series, c) => {
+    const copy = series.slice(0, end + 1);
+    for (let k = 0; k < fc.lead_days && d0 + k <= end; k++) copy[d0 + k] = fc.pm10_ugm3[issue][k][c];
+    return copy;
+  });
+  const counts = replay.fires?.available ? replay.fires.district_counts ?? null : null;
+  const input = {
+    days,
+    window_start: day,
+    districts: districts.map((f) => ({
+      code: f.properties.code,
+      name: f.properties.name,
+      profile: f.properties.profile,
+      pm10_ugm3: days.map((_, d) => meanOf(f.properties.cells, (c) => cells[c][d])),
+      // As in the app: fires are known before the window only.
+      fire_count: days.map((_, d) => (counts && d < d0 ? (counts[f.properties.code]?.[d] ?? null) : null)),
+    })),
+    puskesmas: puskesmas.map((p) => ({ id: p.id, name: p.name, district_code: p.district_code, baseline_visits_per_day: null })),
+    haze_chance_model: engineModel(ch.folds[foldOf(ch, day)]),
+  };
+  compare(`${region.id} outlook + chance`, 'ss_outlook', 'outlook', input);
+  for (const lang of ['id', 'en']) {
+    compare(`${region.id} brief + chance (${lang})`, 'ss_brief', 'brief', {
+      outlook: input,
+      lang,
+      region_name: region.name,
+      mode: 'forecast',
+      data_times: [{ source: `Copernicus CAMS (ADS) ${fc.runs[issue]}`, time: fc.generated_at }],
+      top: 5,
+      link: `https://sootsayer.vercel.app/?region=${region.id}&mode=replay&view=forecast&date=${day}`,
+    });
+  }
+  // 2. The held-out test table, rebuilt from the files.
+  const pairs = [];
+  fc.issue_dates.forEach((start, i) => {
+    const before = replay.days.indexOf(plus(start, -1));
+    for (let k = 0; k < fc.lead_days; k++) {
+      const ti = replay.days.indexOf(plus(start, k));
+      for (const f of districts) {
+        const cellIdx = f.properties.cells;
+        pairs.push([
+          foldOf(ch, start),
+          k,
+          meanOf(cellIdx, (c) => fc.pm10_ugm3[i][k][c]),
+          before < 0 ? null : meanOf(cellIdx, (c) => replay.cams.pm10_ugm3[c][before]),
+          ti < 0 ? null : meanOf(cellIdx, (c) => replay.cams.pm10_ugm3[c][ti]),
+        ]);
+      }
+    }
+  });
+  const payload = { lead_days: fc.lead_days, models: ch.folds.map(engineModel), pairs };
+  compare(`${region.id} chance check`, 'ss_chance_check', 'chance-check', payload);
+  const fromWasm = JSON.parse(viaWasm('ss_chance_check', JSON.stringify(payload))).result;
+  const same = JSON.stringify(fromWasm) === JSON.stringify(ch.check);
+  console.log(`${same ? 'identical' : 'MISMATCH '}  ${`${region.id} chance vs pipeline`.padEnd(30)} ${pairs.length} pairs`);
+  if (!same) failed = true;
+}
 if (failed) {
   console.error('MISMATCH between WebAssembly and native CLI output');
   process.exit(1);
