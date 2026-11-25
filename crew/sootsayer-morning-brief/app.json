@@ -1,0 +1,57 @@
+{
+  "name": "sootsayer-morning-brief",
+  "version": "0.1.0",
+  "displayName": "Sootsayer Morning Brief",
+  "description": "Every morning at 06:00 WIB, a Kiro Crew agent asks the Sootsayer engine where wildfire haze will hit Indonesia's puskesmas over the next five days and delivers the health-office briefing word for word, with its 95% ranges, haze-day chances, data times and method limits.",
+  "author": "maulanawirawan",
+  "license": "MIT",
+  "iconPath": "assets/icon.png",
+  "tags": ["health", "haze", "wildfire-smoke", "indonesia", "briefing", "mcp", "kiroween"],
+  "highlights": [
+    "A 06:00 WIB schedule (Asia/Jakarta) that runs the sootsayer-morning-briefer agent; it ships paused until you set it up",
+    "Briefings written by the Sootsayer Rust engine, not by the model: the agent forwards them word for word",
+    "Every estimate keeps its 95% range, every haze-day chance its source and test, and every failed source is named",
+    "Kalimantan and Sumatra's peatland provinces, in Bahasa Indonesia or English",
+    "Seven read-only Sootsayer MCP tools, approved for unattended runs: priority, haze_outlook, clinic_plan, daily_brief, forecast_check, list_regions, list_districts"
+  ],
+  "useCases": [
+    "When the haze season starts, resume the morning-brief schedule so the sootsayer-morning-briefer agent delivers each day's briefing for Kalimantan and Sumatra at 06:00 WIB",
+    "When a district office asks where to open posko or oxygen houses this week, ask the sootsayer-morning-briefer agent for the priority and watch lists with their 95% ranges and chances",
+    "When a puskesmas head plans a clean-air waiting room, ask the sootsayer-morning-briefer agent, which follows the haze-morning-brief skill, for that clinic's plan",
+    "When someone asks how far to trust the forecast, have the sootsayer-morning-briefer agent quote forecast_check with its counts and caveats instead of a guess"
+  ],
+  "configuration": [
+    "Clone https://github.com/maulanawirawan/sootsayer and build the engine once: cargo build --release --manifest-path engine/Cargo.toml",
+    "Set the environment variable SOOTSAYER_REPO to that clone (for example D:\\github\\sootsayer) before starting Kiro Crew; uv must be on PATH",
+    "Install and enable the app (trust it when asked), then resume the morning-brief schedule on the Schedule page and choose where its result is delivered"
+  ],
+  "links": [
+    { "label": "Live app", "url": "https://sootsayer.vercel.app" },
+    { "label": "Method and limits", "url": "https://github.com/maulanawirawan/sootsayer/blob/main/docs/METHOD.md" },
+    { "label": "Source", "url": "https://github.com/maulanawirawan/sootsayer/tree/main/crew/sootsayer-morning-brief" }
+  ],
+  "agents": ["agents/morning-briefer.json"],
+  "skills": ["skills/haze-morning-brief"],
+  "mcpServers": {
+    "sootsayer": {
+      "command": "python",
+      "args": ["bin/sootsayer_mcp.py"],
+      "autoApprove": ["list_regions", "list_districts", "priority", "haze_outlook", "clinic_plan", "daily_brief", "forecast_check"]
+    }
+  },
+  "crons": [
+    {
+      "name": "morning-brief",
+      "cron_expr": "0 6 * * *",
+      "timezone": "Asia/Jakarta",
+      "strict_schedule": true,
+      "enabled": false,
+      "agent": "sootsayer-morning-briefer",
+      "timeout_secs": 900,
+      "message": "Morning briefing run. For each region in turn, kalimantan then sumatra: call daily_brief with mode \"live\" and lang \"id\", and copy its text field exactly, without changing a word or a number. Under each briefing add one line that names the region and the data times the tool reported, and say plainly if the tool reported a failed source. If daily_brief fails, report the error and the region; never write a briefing yourself."
+    }
+  ],
+  "permissions": { "cron": true },
+  "dependencies": { "commands": ["uv"] },
+  "platform": { "os": ["macos", "linux", "windows"] }
+}
