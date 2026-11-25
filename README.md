@@ -158,7 +158,7 @@ tested yet.)
 
 ## The demo video is code too
 
-`video/` renders the 2:39 demo with Remotion and three.js. The cold open draws
+`video/` renders the 2:55 demo with Remotion and three.js. The cold open draws
 the map from Natural Earth and geoBoundaries, ignites the 9,766 real NASA FIRMS
 detections of 14 October 2026 as embers, hatches the real CAMS smoke of that
 day, and burns the page away to reveal the real app. The product shots are the
