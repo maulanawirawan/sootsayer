@@ -96,12 +96,21 @@ const CLIPS = {
     steps: [{ at: 0.6, clickText: ['#regions button', 'Sumatra'] }],
     marks: [{ at: 0.3, name: 'region', selector: '#regions' }],
   },
+  // Opens under a chapter card (0-2.55 s), so the click comes after it has burnt away.
   'forecast-view': {
     url: '/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=en',
     prepare: 7600,
-    seconds: 12,
-    steps: [{ at: 1.2, clickText: ['#views button', 'What was forecast'] }],
-    marks: [{ at: 0.8, name: 'views', selector: '#views' }, { at: 6.0, name: 'check', selector: '#check' }],
+    seconds: 15,
+    steps: [
+      { at: 3.9, clickText: ['#views button', 'What was forecast'] },
+      { at: 6.0, eval: () => document.querySelector('#check')?.scrollIntoView({ block: 'start' }) },
+    ],
+    marks: [
+      { at: 2.0, name: 'views', selector: '#views' },
+      { at: 5.0, name: 'banner', selector: '#status .banner.note' },
+      { at: 6.6, name: 'check', selector: '#check table.check' },
+      { at: 6.6, name: 'row1', selector: '#check table.check tbody tr:nth-child(2)' },
+    ],
   },
   // The night image of 14 Oct exists on NASA GIBS; today's may not be processed yet.
   'night-replay': {

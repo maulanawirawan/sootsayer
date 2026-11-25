@@ -125,6 +125,72 @@
   ],
   "errors": []
  },
+ "forecast-view": {
+  "name": "forecast-view",
+  "url": "/?region=kalimantan&mode=replay&date=2026-10-14&intro=0&lang=en",
+  "fps": 30,
+  "frames": 450,
+  "seconds": 15,
+  "viewport": {
+   "width": 1600,
+   "height": 900
+  },
+  "dpr": 1.2,
+  "marks": [
+   {
+    "name": "views",
+    "t": 2,
+    "box": {
+     "x": 612.484375,
+     "y": 19.9375,
+     "w": 270.46875,
+     "h": 40.296875,
+     "text": "What happened\nWhat was forecast"
+    }
+   },
+   {
+    "name": "banner",
+    "t": 5,
+    "box": {
+     "x": 29,
+     "y": 91,
+     "w": 310,
+     "h": 90.5,
+     "text": "As forecast: the CAMS forecast available at 06:00 WIB on 14 October 2026 (run 2026-10-13T12:00Z). Earlier days use archived data; fires and the satellite image show what was observed that day."
+    }
+   },
+   {
+    "name": "check",
+    "t": 6.6,
+    "box": {
+     "x": 29,
+     "y": 264.296875,
+     "w": 310,
+     "h": 177.96875,
+     "text": "\tHaze days caught\tFalse alarms (share of warnings)\nFirst day\t425 of 486 · 87%\t54 · 11%\n+1 day\t361 of 480 · 75%\t69 · 16%\n+2 days\t331 of 470 · 70%\t70 · 17%\n+3 days\t326 of 455 · 72%\t84 · 20%\n+4 days\t311 of 438 · 71%\t84 · 21%"
+    }
+   },
+   {
+    "name": "row1",
+    "t": 6.6,
+    "box": {
+     "x": 29,
+     "y": 333.265625,
+     "w": 310,
+     "h": 27.125,
+     "text": "+1 day\t361 of 480 · 75%\t69 · 16%"
+    }
+   }
+  ],
+  "clicks": [
+   {
+    "t": 3.9,
+    "x": 810.5703125,
+    "y": 40.0859375
+   }
+  ],
+  "errors": []
+ },
  "globe-flyin": {
   "name": "globe-flyin",
   "url": "/?region=kalimantan&mode=replay&date=2026-10-01&lang=en",
