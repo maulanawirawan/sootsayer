@@ -78,6 +78,10 @@ The code is MIT. The generated data keeps the licence of its source:
   CC BY 4.0.
 - `web/public/data/*/replay-2026-10-forecast.json`: Copernicus CAMS via the
   Atmosphere Data Store, CC BY 4.0, with the notice in its `source` field.
+- `web/public/data/*/chance-2026-10.json`: the haze-day chance model
+  (coefficients, fold models, test table), derived from the two CAMS files
+  above by `build_chance` (scikit-learn); CC BY 4.0, with the notice in its
+  `source` field. No new data source: see docs/METHOD.md, "Haze-day chance".
 - `web/public/data/*/replay-2026-10-fires.json`: NASA FIRMS, open data.
 
 ## Freshness and fair use

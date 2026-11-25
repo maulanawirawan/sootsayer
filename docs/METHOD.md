@@ -246,16 +246,86 @@ warnings were false, so the later window days there deserve less weight. The
 same table is in the app (forecast view) and in the MCP tool `forecast_check`,
 with these caveats.
 
+## Haze-day chance (statistical correction of the forecast)
+
+Outlook v3 (`.kiro/specs/outlook-v3/`). Not from the study: a correction of
+the CAMS forecast the way weather services correct model output (model
+output statistics; Glahn and Lowry 1972, J Appl Meteorol 11:1203-1211).
+
+**Model.** For each lead day k (0 = the first window day, up to +4) one
+logistic regression gives the chance that the district-day is a haze day:
+
+    chance = 1 / (1 + e^-(a_k + b_k ln F + c_k ln Y))
+
+F = forecast district PM10 of that day; Y = district PM10 of the day before
+the window (known on the morning the forecast is read). Both are floored at
+**1 µg/m³** (`CHANCE_FLOOR_UGM3`) before the logarithm. Target: a haze day in
+hindsight (PM10 ≥ 100 µg/m³, archived CAMS data, not stations). The
+coefficients are trained by `pipeline/sootsayer_pipeline/build_chance.py` with
+scikit-learn (`LogisticRegression`, L2, C = 1, lbfgs) on the October 2026
+forecast replay: 8,120 district-days in Kalimantan and 5,800 in Sumatra with
+all three values known. The Rust engine evaluates the model (with `ln` and
+`exp` written in basic IEEE operations, so the browser and the CLI agree to
+the byte) and rounds the chance to 0.001; the app and the briefing show
+">99%" and "<1%" at the ends. The build stops if the engine's chance and
+scikit-learn's probability differ by more than 0.0006 on any pair (largest
+difference: 0.0005, the rounding).
+
+**What it changes.** Nothing in the study's method: haze-day classification,
+duration, relative risks, visits and the ranking still use PM10 ≥ 100. The
+chance is shown next to them, in live mode and in "What was forecast", never
+with hindsight data.
+
+**Watch.** A district with no haze day by the forecast rule but a chance of
+**30%** or more (`HAZE_CHANCE_ALERT = 0.3`) is listed under "Waspada / Watch"
+in the priority panel and the briefing. This is a decision rule of Sootsayer,
+not a study value: for clinic preparation a missed haze day costs more than a
+false alarm. It was chosen among 30%, 40% and 50% after looking at the test
+below, so a new season is the real test.
+
+**Test (purged leave-one-week-out).** Each issue week (1-7, 8-14, 15-21,
+22-31 Oct) is scored by a model trained without that week and without every
+pair whose target day or input day falls on a day the week's targets cover.
+Every chance shown in the October replay comes from the model that did not
+see that week; live mode uses the model trained on all of October, by
+analogy (trained on the 12:00 UTC runs from the Atmosphere Data Store; live
+mode reads the latest CAMS run through Open-Meteo). The engine computes the
+table (`chance-check`) from the held-out chances; hindsight as in the
+forecast check.
+
+| Lead day | Kalimantan caught (raw rule) | false alarms (raw) | Sumatra caught (raw rule) | false alarms (raw) |
+|---|---|---|---|---|
+| First day | 454 of 486, 93% (87%) | 103, 18% (11%) | 250 of 279, 90% (69%) | 81, 24% (6%) |
+| +1 day | 421 of 480, 88% (75%) | 138, 25% (16%) | 193 of 274, 70% (49%) | 127, 40% (20%) |
+
+Brier score (mean squared error of the chance, lower is better) one day
+ahead: 0.080 with the chance against 0.112 for the raw yes/no in Kalimantan,
+0.108 against 0.146 in Sumatra; the chance is better at every lead day in
+both regions. Reliability: when the chance was 60-80% (mean 70% in
+Kalimantan, 69% in Sumatra), a haze day came 73% and 65% of the time. All lead days are in
+`web/public/data/<region>/chance-2026-10.json`, in the app's check card and
+in the MCP tool `forecast_check`.
+
+**Limits.** One month, one haze season. Weeks next to each other are
+correlated even with purging, so the held-out scores may still flatter the
+model. "Truth" is the model's own later estimate, not stations. The watch
+level trades more false alarms (up to 40% of warnings in Sumatra one day
+ahead) for fewer missed haze days.
+
 ## Verification in this repo
 
-- 31 unit tests and 8 property-based tests (proptest) in `engine/`: range
+- 38 unit tests and 10 property-based tests (proptest) in `engine/`: range
   ordering, clear-day identity, monotonic duration effect, purifier coverage,
   determinism, indoor estimates ordered and lower with a cleaner, every
-  briefing carrying its ranges, limits, and disclaimer, and a forecast check
+  briefing carrying its ranges, limits, and disclaimer, a forecast check
   that counts every pair once (swapping forecast and hindsight swaps misses
-  and false alarms, nothing else).
+  and false alarms, nothing else), a haze-day chance that stays in [0, 1] on
+  window days only and never changes the study's estimates or the ranking,
+  and a chance that never falls when the forecast smoke rises.
 - `node web/scripts/check-parity.mjs` runs a real October input of every
   region through the WebAssembly module and the native CLI, for the outlook
   and for the briefing in both languages, and requires byte-identical output.
   For the forecast check it also requires the table built in the browser's
-  way (JavaScript) to equal the one the Python pipeline stored.
+  way (JavaScript) to equal the one the Python pipeline stored. The same holds
+  for a forecast-mode outlook and briefing with the haze-day chance, and for
+  the chance's test table.

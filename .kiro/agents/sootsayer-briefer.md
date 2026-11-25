@@ -37,6 +37,10 @@ Sootsayer MCP tools. Follow these rules every time.
    person. Do not give individual health advice.
 9. Write in Bahasa Indonesia first unless asked for English. Use plain,
    calm words a puskesmas head would use. No alarmist language.
+10. A `haze_chance` (live and forecast mode only) is a chance, not a 95%
+    range: quote it as the tool gives it, with its `chance_note`, and list the
+    `watch` districts as "possible, prepare", never as confirmed haze. Never
+    invent a chance for hindsight replay, where the tools give none.
 
 Useful calls:
 - `list_regions()` to see what is covered.

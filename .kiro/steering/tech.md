@@ -16,6 +16,9 @@
    grid, provinces by geoBoundaries ADM1 `shapeISO`, and the list of cities.
    Shipped: `kalimantan` (5 provinces) and `sumatra` (Riau, Jambi, Sumatera
    Selatan).
+   `build_chance` (extra `ml`, scikit-learn) trains the haze-day chance model
+   (logistic regression per lead day, purged leave-one-week-out test) from the
+   October forecast replay; the engine evaluates it, never Python at run time.
 5. **MCP server** (`mcp-server/`): MCP Python SDK v2 (`MCPServer`, formerly
    FastMCP). Exposes the outlook and the briefing to agents by calling the
    engine CLI. A custom agent (`.kiro/agents/sootsayer-briefer.md`) and a Kiro
@@ -68,6 +71,8 @@ npm run build --prefix web
 # Data pipeline (reference data for every region, replay per region)
 pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_reference [--region sumatra]
 pipeline/.venv/Scripts/python.exe -m sootsayer_pipeline.build_replay --region sumatra
+# Haze-day chance model (after the forecast replay; scikit-learn, build time only)
+uv run --project pipeline --extra ads --extra ml python -m sootsayer_pipeline.build_chance
 # Replay as forecast (Atmosphere Data Store, needs ADS_API_KEY; one cached request for both regions)
 uv run --project pipeline --extra ads python -m sootsayer_pipeline.build_forecast --region kalimantan --region sumatra
 

@@ -75,6 +75,20 @@ and a briefing to send to the puskesmas heads.
   Kalimantan's district haze days (361 of 480, 16% of warnings false) but only
   49% of Sumatra's (133 of 274), so the app tells a health office where the
   later days deserve less weight. Details: [docs/METHOD.md](docs/METHOD.md#replay-as-forecast-and-the-forecast-check).
+- **Haze-day chance (machine learning, honestly tested).** A logistic
+  regression per lead day, trained with scikit-learn on the October forecast
+  replay and evaluated by the Rust engine, turns the morning forecast into a
+  chance of a haze day for every district and day, like a rain chance. A
+  district the forecast leaves clear but with a chance of 30% or more goes on
+  a "Watch" list. Tested week by week on weeks the model never saw: one day
+  ahead the watch caught 88% of Kalimantan's district haze days (raw forecast
+  75%) and 70% of Sumatra's (49%), with more false alarms (25% and 40% of
+  warnings), and the chance scored a Brier score 26-29% lower than the raw
+  yes/no. The study's method is unchanged. Details:
+  [docs/METHOD.md](docs/METHOD.md#haze-day-chance-statistical-correction-of-the-forecast).
+- **Plain words first.** A start card explains the screen in three steps, and
+  every district and puskesmas panel opens with one sentence built from the
+  engine's numbers, with its 95% range, for readers from any field.
 - **Presentation mode** (`?tour=1`): a captioned walk through the real app.
 - **Agents can ask it.** An MCP server gives Kiro (or any MCP client) the same
   numbers and the same briefing: `list_regions`, `list_districts`, `priority`,
@@ -89,10 +103,10 @@ and a briefing to send to the puskesmas heads.
 
 | Part | Technology | Job |
 |---|---|---|
-| Engine | **Rust** (one crate, three faces: library, native CLI, **WebAssembly** with a hand-written C ABI) | Classification, duration, relative risk, expected visits, priority, fire-to-district assignment, point location, clean-air sizing, indoor PM2.5, briefing text, forecast check |
+| Engine | **Rust** (one crate, three faces: library, native CLI, **WebAssembly** with a hand-written C ABI) | Classification, duration, relative risk, expected visits, priority, fire-to-district assignment, point location, clean-air sizing, indoor PM2.5, briefing text, forecast check, haze-day chance (deterministic logistic model) and its test table |
 | Globe | **TypeScript + Vite + MapLibre GL JS v6** (WebGL2, globe projection, terrain) | The 3D view, timeline, panels, CSV, tour, Bahasa Indonesia and English |
 | Edge | **Vercel functions** | Cache and trim CAMS (Open-Meteo) and NASA FIRMS per region, which the browser cannot read directly |
-| Data | **Python + uv + Shapely**, Copernicus **Atmosphere Data Store** client | Region packs: districts (geoBoundaries), puskesmas (OpenStreetMap), CAMS grid, October 2026 replay in hindsight and as forecast |
+| Data | **Python + uv + Shapely**, Copernicus **Atmosphere Data Store** client, **scikit-learn** | Region packs: districts (geoBoundaries), puskesmas (OpenStreetMap), CAMS grid, October 2026 replay in hindsight and as forecast, the haze-day chance model (purged week-by-week test) |
 | Agents | **MCP** (Python SDK v2), a **custom Kiro agent**, a **Kiro power** | The outlook and the briefing as tools, on the same Rust engine |
 
 The browser and the agent tool run the same Rust code. `web/scripts/check-parity.mjs`
